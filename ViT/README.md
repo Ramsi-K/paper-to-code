@@ -1,4 +1,4 @@
-# Vision Transformer (ViT) Implementation in PyTorch
+# Vision Transformer (ViT) Implementation in PyTorch [WIP]
 
 This repository contains an implementation of the Vision Transformer (ViT) model in PyTorch. ViT is a transformer-based architecture introduced in the paper ["An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale"](https://arxiv.org/abs/2010.11929) by Alexey Dosovitskiy et al. It achieves state-of-the-art results on various image classification tasks by applying the transformer architecture directly to images.
 
@@ -55,3 +55,9 @@ model = ViT(image_size=224, patch_size=16, num_classes=1000, num_layers=12, dim=
 
 # Train the model
 # ...
+```
+
+## References
+["An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale"](https://arxiv.org/abs/2010.11929) by Alexey Dosovitskiy et al.
+[Pytorch Official Documentation](https://pytorch.org/docs/stable/index.html)
+[Zero to Mastery Learn PyTorch for Deep Learning](https://www.learnpytorch.io/)
