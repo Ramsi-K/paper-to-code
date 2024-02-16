@@ -1,12 +1,11 @@
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import torchvision
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from WGAN.WGAN import Critic, Generator, initialize_weights
+from WGAN import Critic, Generator, initialize_weights
 
 
 # Hyperparams
@@ -34,7 +33,7 @@ transforms = transforms.Compose(
 )
 
 dataset = datasets.MNIST(
-    root="../dataset", train=True, transform=transforms, download=True
+    root="dataset/", train=True, transform=transforms, download=True
 )
 loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
@@ -48,8 +47,8 @@ opt_critic = optim.RMSprop(critic.parameters(), lr=LEARNING_RATE)
 
 
 fixed_noise = torch.randn(32, Z_DIM, 1, 1).to(device)
-writer_real = SummaryWriter(log_dir="logs/real")
-writer_fake = SummaryWriter(log_dir="logs/fake")
+writer_real = SummaryWriter(log_dir="logs/WGAN/real")
+writer_fake = SummaryWriter(log_dir="logs/WGAN/fake")
 step = 0
 
 gen.train()

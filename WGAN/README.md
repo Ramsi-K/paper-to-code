@@ -33,7 +33,8 @@ To convert the WGAN paper to code, follow these steps:
 
 ## Results
 
-![fig1](./images/WGAN_10epochs.png)
+![fig1](./images/WGAN_1epoch.png)
+![fig2](./images/WGAN_10epochs.png)
 
 ## References
 
