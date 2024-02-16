@@ -28,7 +28,7 @@ The methodology for converting the DCGAN paper to code involves the following st
 - `requirements.txt`: List of Python dependencies for reproducing the environment. -->
 
 ## Results
-![fig1](./images/fig_1.png)
+![fig1](./images/DCGAN_10epochs.png)
 
 ## References
 
