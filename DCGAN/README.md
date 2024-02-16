@@ -22,7 +22,7 @@ The methodology for converting the DCGAN paper to code involves the following st
 
 ## Repository Structure
 
-- `dcgan.py`: Python script containing the implementation of the DCGAN architecture.
+- `DCGAN.py`: Python script containing the implementation of the DCGAN architecture.
 - `train.py`: Script for training the DCGAN model.
 <!-- - `generate_samples.py`: Script for generating samples using the trained generator.
 - `requirements.txt`: List of Python dependencies for reproducing the environment. -->

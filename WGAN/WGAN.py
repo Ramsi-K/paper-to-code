@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 
-print("running model.py")
+print("running WGAN.py")
 
 
-class Discrimintor(nn.Module):
+class Critic(nn.Module):
     def __init__(self, channels_img, features_d):
-        super(Discrimintor, self).__init__()
+        super(Critic, self).__init__()
         self.disc = nn.Sequential(
             # Input: N x channels_img x 64 x 64
             nn.Conv2d(
@@ -17,7 +17,6 @@ class Discrimintor(nn.Module):
             self._block(features_d * 2, features_d * 4, 4, 2, 1),  # 8 x 8
             self._block(features_d * 4, features_d * 8, 4, 2, 1),  # 4  x 4
             nn.Conv2d(features_d * 8, 1, kernel_size=4, stride=2, padding=0),  # 1 x 1
-            nn.Sigmoid(),  # between 0 and 1
         )
 
     def _block(self, in_channels, out_channels, kernel_size, stride, padding):
@@ -72,7 +71,7 @@ def test():
     N, in_channels, H, W = 8, 3, 64, 64
     z_dim = 100
     x = torch.randn((N, in_channels, H, W))
-    disc = Discrimintor(in_channels, 8)
+    disc = Critic(in_channels, 8)
     initialize_weights(disc)
     assert disc(x).shape == (N, 1, 1, 1)
     gen = Generator(z_dim, in_channels, 8)

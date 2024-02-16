@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 
-print("running model.py")
+print("running DCGAN.py")
 
 
-class Critic(nn.Module):
+class Discrimintor(nn.Module):
     def __init__(self, channels_img, features_d):
-        super(Critic, self).__init__()
+        super(Discrimintor, self).__init__()
         self.disc = nn.Sequential(
             # Input: N x channels_img x 64 x 64
             nn.Conv2d(
@@ -17,6 +17,7 @@ class Critic(nn.Module):
             self._block(features_d * 2, features_d * 4, 4, 2, 1),  # 8 x 8
             self._block(features_d * 4, features_d * 8, 4, 2, 1),  # 4  x 4
             nn.Conv2d(features_d * 8, 1, kernel_size=4, stride=2, padding=0),  # 1 x 1
+            nn.Sigmoid(),  # between 0 and 1
         )
 
     def _block(self, in_channels, out_channels, kernel_size, stride, padding):

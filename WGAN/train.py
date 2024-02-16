@@ -6,7 +6,7 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from model import Critic, Generator, initialize_weights
+from WGAN.WGAN import Critic, Generator, initialize_weights
 
 
 # Hyperparams
@@ -34,7 +34,7 @@ transforms = transforms.Compose(
 )
 
 dataset = datasets.MNIST(
-    root="dataset/", train=True, transform=transforms, download=True
+    root="../dataset", train=True, transform=transforms, download=True
 )
 loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 gen = Generator(Z_DIM, CHANNELS_IMG, FEATURES_GEN).to(device)
