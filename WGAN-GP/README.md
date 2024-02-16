@@ -31,7 +31,8 @@ To convert the WGAN-GP paper to code, follow these steps:
 - `README.md`: This file, providing an overview of the repository and instructions for usage.
 
 ## Results
-![fig1](./images/WGAN_GP_10epochs.png)
+![After 1 epoch](./images/WGAN_GP_1epoch.png)
+![After 10 epochs](./images/WGAN_GP_10epochs.png)
 
 ## References
 - [Paper: Improved Training of Wasserstein GANs](https://arxiv.org/abs/1704.00028)
