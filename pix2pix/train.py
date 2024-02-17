@@ -10,7 +10,9 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 
-def train_fn(disc, gen, loader, opt_disc, opt_gen, l1, bce, g_scaler, d_scaler):
+def train_fn(
+    disc, gen, loader, opt_disc, opt_gen, l1, bce, g_scaler, d_scaler
+):
     loop = tqdm(loader, leave=True)
 
     for idx, (x, y) in enumerate(loop):
@@ -49,13 +51,19 @@ def main():
     opt_disc = optim.Adam(
         disc.parameters(), lr=config.LEARNING_RATE, betas=(0.5, 0.999)
     )
-    opt_gen = optim.Adam(gen.parameters(), lr=config.LEARNING_RATE, betas=(0.5, 0.999))
+    opt_gen = optim.Adam(
+        gen.parameters(), lr=config.LEARNING_RATE, betas=(0.5, 0.999)
+    )
     BCE = nn.BCEWithLogitsLoss()
     L1_LOSS = nn.L1Loss()
 
     if config.LOAD_MODEL:
-        load_checkpoint(config.CHECKPOINT_GEN, gen, opt_gen, config.LEARNING_RATE)
-        load_checkpoint(config.CHECKPOINT_DISC, disc, opt_disc, config.LEARNING_RATE)
+        load_checkpoint(
+            config.CHECKPOINT_GEN, gen, opt_gen, config.LEARNING_RATE
+        )
+        load_checkpoint(
+            config.CHECKPOINT_DISC, disc, opt_disc, config.LEARNING_RATE
+        )
 
     train_dataset = MapDataset(root_dir="dataset/mapdataset/train")
     train_loader = DataLoader(
@@ -71,7 +79,15 @@ def main():
 
     for epoch in range(config.NUM_EPOCHS):
         train_fn(
-            disc, gen, train_loader, opt_disc, opt_gen, L1_LOSS, BCE, g_scaler, d_scaler
+            disc,
+            gen,
+            train_loader,
+            opt_disc,
+            opt_gen,
+            L1_LOSS,
+            BCE,
+            g_scaler,
+            d_scaler,
         )
 
         if config.SAVE_MODEL and epoch % 5 == 0:

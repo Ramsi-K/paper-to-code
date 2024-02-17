@@ -43,7 +43,9 @@ class Discriminator(nn.Module):
         for feature in features[1:]:
             layers.append(
                 CNNBlock(
-                    in_channels, feature, stride=1 if feature == features[-1] else 2
+                    in_channels,
+                    feature,
+                    stride=1 if feature == features[-1] else 2,
                 )
             )
             in_channels = feature
