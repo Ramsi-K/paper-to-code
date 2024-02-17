@@ -33,5 +33,6 @@ To convert the Pix2Pix paper to code, follow these steps:
 - `README.md`: This file, providing an overview of the repository and instructions for usage.
 
 ## References
+
 - [Paper: Image-to-Image Translation with Conditional Adversarial Networks](https://arxiv.org/abs/1611.07004)
 - [GitHub Repo: Official Implementation of pix2pix](https://github.com/phillipi/pix2pix)

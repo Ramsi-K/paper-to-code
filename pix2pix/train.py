@@ -39,7 +39,7 @@ def train_fn(disc, gen, loader, opt_disc, opt_gen, l1, bce, g_scaler, d_scaler):
 
         opt_gen.zero_grad()
         g_scaler.scale(G_loss).backward()
-        g_scaler.step()
+        g_scaler.step(opt_gen)
         g_scaler.update()
 
 
