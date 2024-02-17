@@ -15,7 +15,7 @@ class MapDataset(Dataset):
     def __len__(self):
         return len(self.list_files)
 
-    def __getitem__(self, index) -> Any:
+    def __getitem__(self, index):
         img_file = self.list_files[index]
         img_path = os.path.join(self.root_dir, img_file)
         image = np.array(Image.open(img_path))

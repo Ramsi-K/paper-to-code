@@ -8,7 +8,6 @@ from generator import Generator
 from discriminator import Discriminator
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from torchvision.utils import save_image
 
 
 def train_fn(disc, gen, loader, opt_disc, opt_gen, l1, bce, g_scaler, d_scaler):

@@ -15,7 +15,7 @@ class CNNBlock(nn.Module):
                 bias=False,
                 padding_mode="reflect",
             ),
-            nn.BatchNorm2d(out_channels),  # Instance Norm affine?
+            nn.InstanceNorm2d(out_channels, affine=True),
             nn.LeakyReLU(0.2),
         )
 
