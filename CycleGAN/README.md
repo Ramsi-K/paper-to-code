@@ -48,10 +48,26 @@ To convert the CycleGAN paper to code, follow these steps:
 - `config.py`: Configuration file for setting hyperparameters and training configurations.
 - `README.md`: Overview of the repository and instructions for usage.
 
+## Dataset
+
+The dataset was sourced from Kaggle.
+
+Link: [Car Damage Detection](https://www.kaggle.com/datasets/anujms/car-damage-detection)
+
+TrainA: 951 images
+TrainB: 920 images
+
 ## Results 
 
-![fig_01_01epoch](./results_01epoch/A_6000.png)
-![fig_02_01epoch](./results_01epoch/A_1800.png)
+Car-2-Damaged Car trained for 150 epochs:
+
+![figB1_150epochs](./car2damage_results_150epochs/B_0.png)
+![figB2_150epochs](./car2damage_results_150epochs/B_200.png)
+
+cezanne2photo trained for 1 epoch: 
+
+![fig_A1_01epoch](./c2p_results_01epoch/A_6000.png)
+![fig_B1_01epoch](./c2p_results_01epoch/B_1800.png)
 
 ## References
 
