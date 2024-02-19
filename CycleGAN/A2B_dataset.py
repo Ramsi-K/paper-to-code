@@ -35,8 +35,9 @@ class A2BDataset(Dataset):
         B_img = np.array(Image.open(B_path).convert("RGB"))
 
         if self.transform:
-            augmentations = self.transform(image=A_img, image0=B_img)
-            A_img = augmentations["image"]
-            B_img = augmentations["image0"]
+            augmentation_A = self.transform(image=A_img)
+            augmentation_B = self.transform(image=B_img)
+            A_img = augmentation_A["image"]
+            B_img = augmentation_B["image"]
 
         return A_img, B_img

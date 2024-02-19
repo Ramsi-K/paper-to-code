@@ -95,10 +95,10 @@ def train_fn(
 
         if idx % 200 == 0:
             save_image(
-                fake_A * 0.5 + 0.5, f"A2B/cezanne2photo/results/A_{idx}.png"
+                fake_A * 0.5 + 0.5, f"A2B/cardamage/results_a2b/A_{idx}.png"
             )
             save_image(
-                fake_B * 0.5 + 0.5, f"A2B/cezanne2photo/results/B_{idx}.png"
+                fake_B * 0.5 + 0.5, f"A2B/cardamage/results_a2b/B_{idx}.png"
             )
 
         loop.set_postfix(

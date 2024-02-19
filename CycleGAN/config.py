@@ -3,19 +3,19 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-ROOT_DIR = "dataset/cezanne2photo/"
+ROOT_DIR = "dataset/cardamage/A2B/"
 BATCH_SIZE = 1
 LEARNING_RATE = 1e-5
 LAMBDA_IDENTITY = 0.0
 LAMBDA_CYCLE = 10
 NUM_WORKERS = 4
-NUM_EPOCHS = 1
+NUM_EPOCHS = 150
 LOAD_MODEL = False
 SAVE_MODEL = True
-CHECKPOINT_GEN_H = "genh.pth.tar"
-CHECKPOINT_GEN_Z = "genz.pth.tar"
-CHECKPOINT_DISC_H = "critich.pth.tar"
-CHECKPOINT_DISC_Z = "criticz.pth.tar"
+CHECKPOINT_GEN_H = "cardamage/genh.pth.tar"
+CHECKPOINT_GEN_Z = "cardamage/genz.pth.tar"
+CHECKPOINT_DISC_H = "cardamage/critich.pth.tar"
+CHECKPOINT_DISC_Z = "cardamage/criticz.pth.tar"
 
 transforms = A.Compose(
     [
