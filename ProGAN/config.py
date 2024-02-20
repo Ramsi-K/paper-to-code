@@ -1,7 +1,7 @@
 import torch
 
 START_TRAIN_AT_IMG_SIZE = 128
-DATASET = "dataset/celeb_hq"
+DATASET = "dataset/celeba_hq"
 CHECKPOINT_GEN = "ProGAN/generator.pth"
 CHECKPOINT_CRITIC = "ProGAN/critic.pth"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
