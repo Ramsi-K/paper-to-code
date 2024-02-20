@@ -36,6 +36,7 @@ The dataset was sourced from Kaggle.
 Link: [CelebA-HQ](https://www.kaggle.com/datasets/lamsimon/celebahq)
 
 Train_Male: 10057 images
+
 Train_Female: 17943 images
 
 ## Usage
