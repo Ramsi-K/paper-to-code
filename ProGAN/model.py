@@ -48,17 +48,19 @@ class PixelNorm(nn.Module):
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, use_pixelnorm=True):
         super(ConvBlock, self).__init__()
-        self.use_pn = use_pixelnorm
+        self.use_pixelnorm = use_pixelnorm
         self.conv1 = WSConv2d(in_channels, out_channels)
         self.conv2 = WSConv2d(out_channels, out_channels)
         self.leaky = nn.LeakyReLU(0.2)
-        self.pn = PixelNorm()
+        self.pixelnorm = PixelNorm()
 
     def forward(self, x):
-        x = self.leaky(self.conv1(x))
-        x = self.pn(x) if self.use_pn else x
-        x = self.leaky(self.conv2(x))
-        x = self.pn(x) if self.use_pn else x
+        x = self.conv1(x)
+        x = self.leaky(x)
+        x = self.pixelnorm(x) if self.use_pixelnorm else x
+        x = self.conv2(x)
+        x = self.leaky(x)
+        x = self.pixelnorm(x) if self.use_pixelnorm else x
         return x
 
 
@@ -118,9 +120,9 @@ class Generator(nn.Module):
         return self.fade_in(alpha, final_upscaled, final_out)
 
 
-class Discriminator(nn.Module):
+class Critic(nn.Module):
     def __init__(self, z_dim, in_channels, img_channels=3):
-        super(Discriminator, self).__init__()
+        super(Critic, self).__init__()
         self.prog_blocks, self.rgb_layers = nn.ModuleList([]), nn.ModuleList(
             []
         )
@@ -138,24 +140,34 @@ class Discriminator(nn.Module):
                 )
             )
 
-        self.initial_rgb = WSConv2d(
-            img_channels, in_channels, kernel_size=1, stride=1, padding=0
-        )
+            self.initial_rgb = WSConv2d(
+                img_channels, in_channels, kernel_size=1, stride=1, padding=0
+            )
         self.rgb_layers.append(self.initial_rgb)
+
         self.avg_pool = nn.AvgPool2d(kernel_size=2, stride=2)
 
         self.final_block = nn.Sequential(
-            WSConv2d(in_channels + 1, in_channels, kernel_size=3, padding=1),
-            nn.LeakyReLU(0.2),
             WSConv2d(
-                in_channels, in_channels, kernel_size=4, padding=0, stride=1
+                in_channels + 1,
+                in_channels,
+                kernel_size=3,
+                stride=1,
+                padding=1,
             ),
             nn.LeakyReLU(0.2),
-            WSConv2d(in_channels, 1, kernel_size=1, padding=0, stride=1),
+            WSConv2d(
+                in_channels,
+                in_channels,
+                kernel_size=4,
+                stride=1,
+                padding=0,
+            ),
+            nn.LeakyReLU(0.2),
+            WSConv2d(in_channels, 1, kernel_size=1, stride=1, padding=0),
         )
 
     def fade_in(self, alpha, downscaled, out):
-
         return alpha * out + (1 - alpha) * downscaled
 
     def minibatch_std(self, x):
@@ -168,9 +180,7 @@ class Discriminator(nn.Module):
         return torch.cat([x, batch_statistics], dim=1)
 
     def forward(self, x, alpha, steps):
-
         cur_step = len(self.prog_blocks) - steps
-
         out = self.leaky(self.rgb_layers[cur_step](x))
 
         if steps == 0:
@@ -196,7 +206,7 @@ if __name__ == "__main__":
     Z_DIM = 100
     IN_CHANNELS = 256
     gen = Generator(Z_DIM, IN_CHANNELS, img_channels=3)
-    critic = Discriminator(Z_DIM, IN_CHANNELS, img_channels=3)
+    critic = Critic(Z_DIM, IN_CHANNELS, img_channels=3)
 
     for img_size in [4, 8, 16, 32, 64, 128, 256, 512, 1024]:
         num_steps = int(log2(img_size / 4))
@@ -205,4 +215,4 @@ if __name__ == "__main__":
         assert z.shape == (1, 3, img_size, img_size)
         out = critic(z, alpha=0.5, steps=num_steps)
         assert out.shape == (1, 1)
-        print(f"Success! At img size: {img_size}")
+        print(f"Image Size: {img_size}")
