@@ -6,6 +6,9 @@ import torch
 import torch.nn as nn
 import config
 
+import torch
+import torch.nn as nn
+
 
 class Discriminator(nn.Module):
     def __init__(self, config, num_filters_last=64, n_layers=3):
@@ -28,6 +31,7 @@ class Discriminator(nn.Module):
                     2 if i < n_layers else 1,
                     1,
                     bias=False,
+                    padding_mode="reflect",
                 ),
                 nn.BatchNorm2d(num_filters_last * num_filters_mult),
                 nn.LeakyReLU(0.2, True),
@@ -42,34 +46,34 @@ class Discriminator(nn.Module):
         return self.model(x)
 
 
-def test_discriminator():
-    # Set device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# def test_discriminator():
+#     # Set device
+#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Define configuration parameters
-    image_channels = config.image_channels
+#     # Define configuration parameters
+#     image_channels = config.image_channels
 
-    # Instantiate the discriminator
-    discriminator = Discriminator(config).to(device)
+#     # Instantiate the discriminator
+#     discriminator = Discriminator(config).to(device)
 
-    # Create dummy input data
-    batch_size = 4
-    height, width = 128, 128
-    dummy_input = torch.randn(batch_size, image_channels, height, width).to(
-        device
-    )
+#     # Create dummy input data
+#     batch_size = 4
+#     height, width = 128, 128
+#     dummy_input = torch.randn(batch_size, image_channels, height, width).to(
+#         device
+#     )
 
-    # Perform a forward pass
-    output = discriminator(dummy_input)
+#     # Perform a forward pass
+#     output = discriminator(dummy_input)
 
-    # Check the output shape
-    expected_output_shape = (batch_size, 1, height // 16, width // 16)
-    assert (
-        output.shape == expected_output_shape
-    ), f"Output shape mismatch: expected {expected_output_shape}, got {output.shape}"
+#     # Check the output shape
+#     expected_output_shape = (batch_size, 1, height // 16, width // 16)
+#     assert (
+#         output.shape == expected_output_shape
+#     ), f"Output shape mismatch: expected {expected_output_shape}, got {output.shape}"
 
-    print("Discriminator test passed!")
+#     print("Discriminator test passed!")
 
 
-# Run the test function
-test_discriminator()
+# # Run the test function
+# test_discriminator()

@@ -1,5 +1,6 @@
 import os
 from tqdm import tqdm
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torchvision import utils as vutils
@@ -8,6 +9,8 @@ from lpips import LPIPS
 from vqgan import VQGAN
 from utils import load_data, weights_init
 import config
+
+torch.cuda.empty_cache()
 
 
 class TrainVQGAN:
@@ -25,19 +28,19 @@ class TrainVQGAN:
         opt_disc (torch.optim.Adam): Optimizer for the discriminator.
     """
 
-    def __init__(self, args):
+    def __init__(self, config):
         # Initialize VQGAN, discriminator, perceptual loss, and optimizers
-        self.vqgan = VQGAN(args).to(device=args.device)
-        self.discriminator = Discriminator(args).to(device=args.device)
+        self.vqgan = VQGAN(config).to(device=config.device)
+        self.discriminator = Discriminator(config).to(device=config.device)
         self.discriminator.apply(weights_init)
-        self.perceptual_loss = LPIPS().eval().to(device=args.device)
-        self.opt_vq, self.opt_disc = self.configure_optimizers(args)
+        self.perceptual_loss = LPIPS().eval().to(device=config.device)
+        self.opt_vq, self.opt_disc = self.configure_optimizers(config)
 
-        self.prepare_training()  # Prepare directories for saving results and checkpoints
+        self.prepare_training()
 
-        self.train(args)  # Start training
+        self.train(config)  # Start training
 
-    def configure_optimizers(self, args):
+    def configure_optimizers(self, config):
         """
         Configure optimizers for VQGAN and discriminator.
 
@@ -47,7 +50,7 @@ class TrainVQGAN:
         Returns:
             tuple: Optimizers for VQGAN and discriminator.
         """
-        lr = args.learning_rate
+        lr = config.learning_rate
         opt_vq = torch.optim.Adam(
             list(self.vqgan.encoder.parameters())
             + list(self.vqgan.decoder.parameters())
@@ -56,13 +59,13 @@ class TrainVQGAN:
             + list(self.vqgan.post_quant_conv.parameters()),
             lr=lr,
             eps=1e-08,
-            betas=(args.beta1, args.beta2),
+            betas=(config.beta1, config.beta2),
         )
         opt_disc = torch.optim.Adam(
             self.discriminator.parameters(),
             lr=lr,
             eps=1e-08,
-            betas=(args.beta1, args.beta2),
+            betas=(config.beta1, config.beta2),
         )
 
         return opt_vq, opt_disc
@@ -70,8 +73,8 @@ class TrainVQGAN:
     @staticmethod
     def prepare_training():
         """Create directories for saving results and checkpoints."""
-        os.makedirs("results", exist_ok=True)
-        os.makedirs("checkpoints", exist_ok=True)
+        os.makedirs("VQGAN\\results", exist_ok=True)
+        os.makedirs("VQGAN\\checkpoints", exist_ok=True)
 
     def train(self, args):
         """Train the VQGAN model."""
@@ -103,11 +106,13 @@ class TrainVQGAN:
                     perceptual_rec_loss = perceptual_rec_loss.mean()
                     g_loss = -torch.mean(disc_fake)
 
-                    λ = self.vqgan.calculate_lambda(
+                    lambda_ = self.vqgan.calc_lambda(
                         perceptual_rec_loss, g_loss
                     )
                     vq_loss = (
-                        perceptual_rec_loss + q_loss + disc_factor * λ * g_loss
+                        perceptual_rec_loss
+                        + q_loss
+                        + disc_factor * lambda_ * g_loss
                     )
 
                     d_loss_real = torch.mean(F.relu(1.0 - disc_real))
@@ -154,4 +159,4 @@ class TrainVQGAN:
 
 if __name__ == "__main__":
     # Start training with configuration from config.py
-    train_vqgan = TrainVQGAN(config.CONFIG["training_params"])
+    train_vqgan = TrainVQGAN(config)

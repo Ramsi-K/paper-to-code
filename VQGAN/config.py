@@ -1,15 +1,15 @@
 import torch
 
 # Common parameters
-latent_dim = 256
-image_size = 256
-num_codebook_vectors = 1024
+latent_dim = 32
+image_size = 32
+num_codebook_vectors = 128
 beta = 0.25
 image_channels = 3
-dataset_path = "/data"
+dataset_path = "dataset\\oxford_17flowers"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 batch_size = 6
-epochs = 100
+epochs = 1
 learning_rate = 2.25e-05
 beta1 = 0.5
 beta2 = 0.9
