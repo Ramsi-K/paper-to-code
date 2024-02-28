@@ -3,21 +3,35 @@ import torch.nn as nn
 from encoder import Encoder
 from decoder import Decoder
 from codebook import CodeBook
-from config import ENCODER_CONFIG, DECODER_CONFIG, DEVICE, CODEBOOK_CONFIG
+import config
 
 
 class VQGAN(nn.Module):
-    def __init__(self, args):
+    """
+    Main VQGAN module for image generation.
+
+    Args:
+        config (dict): A dictionary containing configuration parameters.
+
+    Attributes:
+        encoder (Encoder): Encoder module.
+        decoder (Decoder): Decoder module.
+        codebook (CodeBook): CodeBook module.
+        quant_conv (nn.Conv2d): Quantization convolution layer.
+        post_quant_conv (nn.Conv2d): Post-quantization convolution layer.
+    """
+
+    def __init__(self, config):
         super(VQGAN, self).__init__()
-        self.encoder = Encoder(args).to(device=args.device)
-        self.decoder = Decoder(args).to(device=args.device)
-        self.codebook = CodeBook(args).to(device=args.device)
-        self.quant_conv = nn.Conv2d(args.latent_dim, args.latent_dim, 1).to(
-            device=args.device
-        )
+        self.encoder = Encoder(config).to(device=config.device)
+        self.decoder = Decoder(config).to(device=config.device)
+        self.codebook = CodeBook(config).to(device=config.device)
+        self.quant_conv = nn.Conv2d(
+            config.latent_dim, config.latent_dim, 1
+        ).to(device=config.device)
         self.post_quant_conv = nn.Conv2d(
-            args.latent_dim, args.latent_dim, 1
-        ).to(device=args.device)
+            config.latent_dim, config.latent_dim, 1
+        ).to(device=config.device)
 
     def forward(self, imgs):
         encoded_images = self.encoder(imgs)
@@ -70,29 +84,22 @@ class VQGAN(nn.Module):
 
 
 def test_vqgan():
-    """
-    Test function to create and run the VQGAN model.
+    # Create an instance of the VQGAN model using configuration from config.py
+    vqgan = VQGAN(config)
 
-    This function creates an instance of the VQGAN model using the provided
-    configuration arguments and performs a forward pass on a dummy input tensor.
-    It prints information about the model's output, including decoded images,
-    codebook indices, and quantization loss.
-    """
-    # Create an instance of the VQGAN model
-    args = {}  # Add your configuration arguments here
-    vqgan = VQGAN(args)
-
-    # Generate a dummy input tensor
+    # Generate some dummy input data
     batch_size = 4
     channels = 3
-    height = 256
-    width = 256
-    dummy_input = torch.randn(batch_size, channels, height, width)
+    height = 128
+    width = 128
+    dummy_input = torch.randn(batch_size, channels, height, width).to(
+        device=config.device
+    )
 
-    # Perform a forward pass on the dummy input
+    # Forward pass through the VQGAN model
     decoded_images, codebook_indices, q_loss = vqgan(dummy_input)
 
-    # Print information about the model's output
+    # Print information about the output
     print("Decoded Images Shape:", decoded_images.shape)
     print("Codebook Indices Shape:", codebook_indices.shape)
     print("Quantization Loss:", q_loss.item())

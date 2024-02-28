@@ -7,9 +7,7 @@ from helper import (
     GroupNorm,
     Swish,
 )
-from config import (
-    ENCODER_CONFIG,
-)  # Importing encoder configuration from config.py
+import config  # Importing encoder configuration from config.py
 
 
 class Encoder(nn.Module):
@@ -28,11 +26,11 @@ class Encoder(nn.Module):
     def __init__(self, config):
         super(Encoder, self).__init__()
         self.config = config
-        channels = config["channels"]
-        num_res_block = config["num_res_block"]
-        resolution = config["resolution"]
-        image_channels = config["image_channels"]
-        latent_dim = config["latent_dim"]
+        channels = config.encoder_channels
+        num_res_block = config.encoder_num_res_block
+        resolution = config.encoder_resolution
+        image_channels = config.image_channels
+        latent_dim = config.latent_dim
 
         # Initialize the layers list with the initial convolutional layer
         layers = [
@@ -54,7 +52,7 @@ class Encoder(nn.Module):
 
                 # Add non-local attention block if
                 # required by the configuration
-                if resolution in config["attn_resolution"]:
+                if resolution in config.attn_resolution:
                     layers.append(NonLocalBlock(in_channels))
 
             # Add downsampling layer if it's not the last channel transition
@@ -102,11 +100,11 @@ def test_encoder():
     summary.
     """
     # Create an instance of the Encoder module using the configuration
-    encoder = Encoder(ENCODER_CONFIG)
+    encoder = Encoder(config)
 
     # Print information about the encoder configuration
     print("Encoder Configuration:")
-    print(ENCODER_CONFIG)
+    print(config)
 
     # Print a separator for better readability
     print("\n" + "=" * 50 + "\n")

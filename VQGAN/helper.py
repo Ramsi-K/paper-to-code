@@ -167,5 +167,6 @@ class NonLocalBlock(nn.Module):
         attn = torch.bmm(q, k) * (int(c) ** (-0.5))
         attn = F.softmax(attn, dim=2).permute(0, 2, 1)
         A = torch.bmm(v, attn).view(b, c, h, w)
+        A = self.proj_out(A)
 
         return x * A

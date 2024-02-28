@@ -2,15 +2,17 @@
 PatchGAN Discriminator (https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/models/networks.py#L538)
 """
 
+import torch
 import torch.nn as nn
+import config
 
 
 class Discriminator(nn.Module):
-    def __init__(self, args, num_filters_last=64, n_layers=3):
+    def __init__(self, config, num_filters_last=64, n_layers=3):
         super(Discriminator, self).__init__()
 
         layers = [
-            nn.Conv2d(args.image_channels, num_filters_last, 4, 2, 1),
+            nn.Conv2d(config.image_channels, num_filters_last, 4, 2, 1),
             nn.LeakyReLU(0.2),
         ]
         num_filters_mult = 1
@@ -38,3 +40,36 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+
+
+def test_discriminator():
+    # Set device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Define configuration parameters
+    image_channels = config.image_channels
+
+    # Instantiate the discriminator
+    discriminator = Discriminator(config).to(device)
+
+    # Create dummy input data
+    batch_size = 4
+    height, width = 128, 128
+    dummy_input = torch.randn(batch_size, image_channels, height, width).to(
+        device
+    )
+
+    # Perform a forward pass
+    output = discriminator(dummy_input)
+
+    # Check the output shape
+    expected_output_shape = (batch_size, 1, height // 16, width // 16)
+    assert (
+        output.shape == expected_output_shape
+    ), f"Output shape mismatch: expected {expected_output_shape}, got {output.shape}"
+
+    print("Discriminator test passed!")
+
+
+# Run the test function
+test_discriminator()

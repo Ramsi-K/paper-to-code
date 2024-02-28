@@ -1,43 +1,50 @@
 import torch
 
-# Decoder configuration
-DECODER_CONFIG = {
-    "latent_dim": 512,
-    "image_channels": 3,
-    "channels": [512, 256, 256, 128, 128],  # Number of channels in each layer
-    "attn_resolution": [16],  # Resolution for attention blocks
-    "num_res_blocks": 3,  # Number of residual blocks
-    "resolution": 16,  # Initial resolution
-}
+# Common parameters
+latent_dim = 256
+image_size = 256
+num_codebook_vectors = 1024
+beta = 0.25
+image_channels = 3
+dataset_path = "/data"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+batch_size = 6
+epochs = 100
+learning_rate = 2.25e-05
+beta1 = 0.5
+beta2 = 0.9
+disc_start = 10000
+disc_factor = 1.0
+rec_loss_factor = 1.0
+perceptual_loss_factor = 1.0
 
-# Encoder configuration
-ENCODER_CONFIG = {
-    "latent_dim": 512,
-    "image_channels": 3,
-    "channels": [128, 128, 128, 256, 256, 512],
-    "num_res_block": 2,
-    "attn_resolution": [16],
-    "resolution": 256,
-}
+# Decoder paramters
+decoder_channels = [512, 256, 256, 128, 128]
+attn_resolution = [16]
+decoder_num_res_blocks = 3
+decoder_resolution = 16
 
-# Configuration parameters for CodeBook module
-CODEBOOK_CONFIG = {
-    "num_codebook_vectors": 64,  # Number of vectors in the codebook
-    "latent_dim": 32,  # Dimension of the latent space
-    "beta": 0.1,  # Coefficient for the commitment loss
-}
+# Encoder parameters
+encoder_channels = [128, 128, 128, 256, 256, 512]
+encoder_num_res_block = 2
+encoder_resolution = 256
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-
-# Configuration parameters for VQGAN
-VQGAN_CONFIG = {
-    "latent_dim": 256,
-    "image_channels": 3,
-    "channels": [128, 128, 256, 512],
-    "num_res_blocks": 2,
-    "attn_resolution": [16],
-    "device": (
-        "cuda" if torch.cuda.is_available() else "cpu"
-    ),  # Add device parameter
+# Training parameters
+training_params = {
+    "latent_dim": latent_dim,
+    "image_size": image_size,
+    "num_codebook_vectors": num_codebook_vectors,
+    "beta": beta,
+    "image_channels": image_channels,
+    "dataset_path": dataset_path,
+    "device": device,
+    "batch_size": batch_size,
+    "epochs": epochs,
+    "learning_rate": learning_rate,
+    "beta1": beta1,
+    "beta2": beta2,
+    "disc_start": disc_start,
+    "disc_factor": disc_factor,
+    "rec_loss_factor": rec_loss_factor,
+    "perceptual_loss_factor": perceptual_loss_factor,
 }

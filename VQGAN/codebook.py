@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from config import CODEBOOK_CONFIG
+import config
 
 
 class CodeBook(nn.Module):
@@ -17,9 +17,9 @@ class CodeBook(nn.Module):
 
     def __init__(self, config):
         super(CodeBook, self).__init__()
-        self.num_codebook_vectors = config["num_codebook_vectors"]
-        self.latent_dim = config["latent_dim"]
-        self.beta = config["beta"]
+        self.num_codebook_vectors = config.num_codebook_vectors
+        self.latent_dim = config.latent_dim
+        self.beta = config.beta
 
         # Initialize the codebook vectors with uniform distribution
         self.Embedding = nn.Embedding(
@@ -74,7 +74,7 @@ class CodeBook(nn.Module):
 def test_codebook():
     # Define configuration parameters
     # Create an instance of the CodeBook module
-    codebook = CodeBook(CODEBOOK_CONFIG)
+    codebook = CodeBook(config)
 
     # Generate some dummy input data
     batch_size = 4
