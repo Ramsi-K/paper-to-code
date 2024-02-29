@@ -3,11 +3,20 @@ import torch.nn as nn
 import torch.nn.functional as F
 from mingpt import GPT
 from vqgan import VQGAN
-import config
 
 
 class VQGANTransformer(nn.Module):
+    """
+    VQGAN Transformer model combining VQGAN and GPT.
+    """
+
     def __init__(self, config):
+        """
+        Initialize the VQGANTransformer model.
+
+        Args:
+            config (dict): Configuration parameters.
+        """
         super(VQGANTransformer, self).__init__()
 
         self.sos_token = config.sos_token
@@ -27,6 +36,15 @@ class VQGANTransformer(nn.Module):
 
     @staticmethod
     def load_vqgan(config):
+        """
+        Load the pre-trained VQGAN model.
+
+        Args:
+            config (dict): Configuration parameters.
+
+        Returns:
+            VQGAN: Loaded VQGAN model.
+        """
         model = VQGAN(config)
         model.load_checkpoint(config.checkpoint_path)
         model = model.eval()
@@ -34,12 +52,33 @@ class VQGANTransformer(nn.Module):
 
     @torch.inference_mode()
     def encode_to_z(self, x):
+        """
+        Encode input images to latent space vectors.
+
+        Args:
+            x (torch.Tensor): Input images.
+
+        Returns:
+            torch.Tensor: Quantized latent space vectors.
+            torch.Tensor: Quantized indices.
+        """
         quant_z, indices, _ = self.vqgan.encode(x)
         indices = indices.view(quant_z.shape[0], -1)
         return quant_z, indices
 
     @torch.inference_mode()
     def z_to_image(self, indices, p1=16, p2=16):
+        """
+        Decode latent space indices to images.
+
+        Args:
+            indices (torch.Tensor): Quantized indices.
+            p1 (int): First dimension size for reshaping.
+            p2 (int): Second dimension size for reshaping.
+
+        Returns:
+            torch.Tensor: Decoded images.
+        """
         ix_to_vectors = self.vqgan.codebook.embedding(indices).reshape(
             indices.shape[0], p1, p2, 256
         )
@@ -48,6 +87,16 @@ class VQGANTransformer(nn.Module):
         return image
 
     def forward(self, x):
+        """
+        Forward pass of the model.
+
+        Args:
+            x (torch.Tensor): Input images.
+
+        Returns:
+            torch.Tensor: Output logits.
+            torch.Tensor: Target indices.
+        """
         _, indices = self.encode_to_z(x)
 
         sos_tokens = torch.ones(x.shape[0], 1) * self.sos_token
@@ -71,6 +120,16 @@ class VQGANTransformer(nn.Module):
         return logits, target
 
     def top_k_logits(self, logits, k):
+        """
+        Compute top-k logits.
+
+        Args:
+            logits (torch.Tensor): Input logits.
+            k (int): Number of top logits to keep.
+
+        Returns:
+            torch.Tensor: Top-k logits.
+        """
         v, _ = torch.topk(logits, k)
         out = logits.clone()
         out[out < v[..., [-1]]] = -float("inf")
@@ -78,6 +137,19 @@ class VQGANTransformer(nn.Module):
 
     @torch.inference_mode()
     def sample(self, x, c, steps, temperature=1.0, top_k=100):
+        """
+        Sample sequences from the model.
+
+        Args:
+            x (torch.Tensor): Input sequence.
+            c (torch.Tensor): Context sequence.
+            steps (int): Number of steps for sampling.
+            temperature (float): Sampling temperature.
+            top_k (int): Number of top-k logits to consider.
+
+        Returns:
+            torch.Tensor: Sampled sequence.
+        """
         self.transformer.eval()
         x = torch.cat((c, x), dim=1)
         for k in range(steps):
@@ -99,6 +171,16 @@ class VQGANTransformer(nn.Module):
 
     @torch.inference_mode()
     def log_images(self, x):
+        """
+        Log images for visualization.
+
+        Args:
+            x (torch.Tensor): Input images.
+
+        Returns:
+            dict: Dictionary containing input, reconstructed, and sampled images.
+            torch.Tensor: Concatenated images.
+        """
         log = dict()
 
         _, indices = self.encode_to_z(x)
@@ -126,4 +208,4 @@ class VQGANTransformer(nn.Module):
         log["half_sample"] = half_sample
         log["full_sample"] = full_sample
 
-        return log, torch.concat((x, x_rec, half_sample, full_sample))
+        return log, torch.cat((x, x_rec, half_sample, full_sample))

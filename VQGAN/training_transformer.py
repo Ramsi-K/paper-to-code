@@ -1,5 +1,4 @@
 import os
-import numpy as np
 from tqdm import tqdm
 import torch
 import torch.nn as nn
@@ -11,13 +10,29 @@ import config
 
 
 class TrainTransformer:
+    """
+    Trainer class for the VQGANTransformer model.
+    """
+
     def __init__(self, config):
+        """
+        Initialize the Trainer.
+
+        Args:
+            config (dict): Configuration parameters.
+        """
         self.model = VQGANTransformer(config).to(device=config.device)
         self.optim = self.configure_optimizers()
 
         self.train(config)
 
     def configure_optimizers(self):
+        """
+        Configure optimizer with different weight decays for different parameter groups.
+
+        Returns:
+            torch.optim.AdamW: AdamW optimizer.
+        """
         decay, no_decay = set(), set()
         whitelist_weight_modules = (nn.Linear,)
         blacklist_weight_modules = (nn.LayerNorm, nn.Embedding)
@@ -28,12 +43,10 @@ class TrainTransformer:
 
                 if pn.endswith("bias"):
                     no_decay.add(fpn)
-
                 elif pn.endswith("weight") and isinstance(
                     m, whitelist_weight_modules
                 ):
                     decay.add(fpn)
-
                 elif pn.endswith("weight") and isinstance(
                     m, blacklist_weight_modules
                 ):
@@ -62,6 +75,12 @@ class TrainTransformer:
         return optimizer
 
     def train(self, args):
+        """
+        Train the model.
+
+        Args:
+            args (dict): Configuration parameters.
+        """
         train_dataset = load_data(args)
         for epoch in range(args.epochs):
             with tqdm(range(len(train_dataset))) as pbar:
@@ -76,9 +95,7 @@ class TrainTransformer:
                     loss.backward()
                     self.optim.step()
                     pbar.set_postfix(
-                        Transformer_Loss=np.round(
-                            loss.cpu().detach().numpy().item(), 4
-                        )
+                        Transformer_Loss=loss.cpu().detach().numpy().item()
                     )
                     pbar.update(0)
             log, sampled_imgs = self.model.log_images(imgs[0][None])

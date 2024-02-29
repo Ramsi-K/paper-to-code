@@ -22,6 +22,12 @@ class VQGAN(nn.Module):
     """
 
     def __init__(self, config):
+        """
+        Initialize the VQGAN model.
+
+        Args:
+            config (dict): Configuration parameters.
+        """
         super(VQGAN, self).__init__()
         self.encoder = Encoder(config).to(device=config.device)
         self.decoder = Decoder(config).to(device=config.device)
@@ -34,6 +40,15 @@ class VQGAN(nn.Module):
         ).to(device=config.device)
 
     def forward(self, imgs):
+        """
+        Forward pass of the VQGAN model.
+
+        Args:
+            imgs (torch.Tensor): Input images.
+
+        Returns:
+            tuple: Decoded images, codebook indices, and quantization loss.
+        """
         encoded_images = self.encoder(imgs)
         quantized_encoded_images = self.quant_conv(encoded_images)
         codebook_mapping, codebook_indices, q_loss = self.codebook(
@@ -45,6 +60,15 @@ class VQGAN(nn.Module):
         return decoded_images, codebook_indices, q_loss
 
     def encode(self, imgs):
+        """
+        Encode input images.
+
+        Args:
+            imgs (torch.Tensor): Input images.
+
+        Returns:
+            tuple: Codebook mapping, codebook indices, and quantization loss.
+        """
         encoded_images = self.encoder(imgs)
         quantized_encoded_images = self.quant_conv(encoded_images)
         codebook_mapping, codebook_indices, q_loss = self.codebook(
@@ -53,11 +77,30 @@ class VQGAN(nn.Module):
         return codebook_mapping, codebook_indices, q_loss
 
     def decode(self, z):
+        """
+        Decode latent space vectors.
+
+        Args:
+            z (torch.Tensor): Latent space vectors.
+
+        Returns:
+            torch.Tensor: Decoded images.
+        """
         quantized_encoded_images = self.post_quant_conv(z)
         decoded_images = self.decoder(quantized_encoded_images)
         return decoded_images
 
     def calc_lambda(self, perceptual_loss, gan_loss):
+        """
+        Calculate lambda for weight adaptation.
+
+        Args:
+            perceptual_loss (torch.Tensor): Perceptual loss.
+            gan_loss (torch.Tensor): GAN loss.
+
+        Returns:
+            torch.Tensor: Lambda value.
+        """
         last_layer = self.decoder.model[-1]
         last_layer_weight = last_layer.weight
         perceptual_loss_grads = torch.autograd.grad(
@@ -75,15 +118,36 @@ class VQGAN(nn.Module):
 
     @staticmethod
     def adopt_weight(disc_factor, i, threshold, val=0.0):
+        """
+        Adopt weight based on the iteration.
+
+        Args:
+            disc_factor (float): Discriminator factor.
+            i (int): Iteration index.
+            threshold (int): Threshold for adoption.
+            val (float): Value to set if condition is met.
+
+        Returns:
+            float: Updated discriminator factor.
+        """
         if i < threshold:
             disc_factor = val
         return disc_factor
 
     def load_checkpoint(self, path):
+        """
+        Load model checkpoint.
+
+        Args:
+            path (str): Path to the checkpoint file.
+        """
         self.load_state_dict(torch.load(path))
 
 
 def test_vqgan():
+    """
+    Test function to check the VQGAN model.
+    """
     # Create an instance of the VQGAN model using configuration from config.py
     vqgan = VQGAN(config)
 

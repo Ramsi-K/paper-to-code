@@ -11,7 +11,7 @@ from utils import load_data, weights_init
 import config
 
 torch.cuda.empty_cache()
-os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+# os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 
 class TrainVQGAN:

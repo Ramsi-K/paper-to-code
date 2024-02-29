@@ -8,6 +8,22 @@ import matplotlib.pyplot as plt
 
 
 class ImagePaths(Dataset):
+    """
+    Dataset class to load and preprocess images from a directory.
+
+    Args:
+        path (str): Path to the directory containing images.
+        size (int, optional): Desired size for resizing images. Defaults to None.
+
+    Attributes:
+        size (int): Desired size for resizing images.
+        images (list): List of image file paths.
+        _length (int): Number of images in the dataset.
+        rescaler (albumentations.SmallestMaxSize): Rescaling transformation.
+        cropper (albumentations.CenterCrop): Cropping transformation.
+        preprocessor (albumentations.Compose): Composition of preprocessing transformations.
+    """
+
     def __init__(self, path, size=None):
         self.size = size
 
@@ -26,6 +42,15 @@ class ImagePaths(Dataset):
         return self._length
 
     def preprocess_image(self, image_path):
+        """
+        Preprocesses an image.
+
+        Args:
+            image_path (str): Path to the image file.
+
+        Returns:
+            np.ndarray: Preprocessed image.
+        """
         image = Image.open(image_path)
         if not image.mode == "RGB":
             image = image.convert("RGB")
@@ -41,6 +66,15 @@ class ImagePaths(Dataset):
 
 
 def load_data(args):
+    """
+    Loads data using DataLoader.
+
+    Args:
+        args (Namespace): Configuration parameters.
+
+    Returns:
+        DataLoader: DataLoader object containing the loaded data.
+    """
     train_data = ImagePaths(args.dataset_path, size=256)
     train_loader = DataLoader(
         train_data, batch_size=args.batch_size, shuffle=False
@@ -49,6 +83,12 @@ def load_data(args):
 
 
 def weights_init(m):
+    """
+    Initializes weights of Conv and BatchNorm layers.
+
+    Args:
+        m (nn.Module): Neural network module.
+    """
     classname = m.__class__.__name__
     if classname.find("Conv") != -1:
         nn.init.normal_(m.weight.data, 0.0, 0.02)
@@ -58,6 +98,12 @@ def weights_init(m):
 
 
 def plot_images(images):
+    """
+    Plots input, reconstructed, half-sampled, and fully sampled images.
+
+    Args:
+        images (dict): Dictionary containing input, reconstructed, half-sampled, and fully sampled images.
+    """
     x = images["input"]
     reconstruction = images["rec"]
     half_sample = images["half_sample"]
