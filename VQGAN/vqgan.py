@@ -35,26 +35,26 @@ class VQGAN(nn.Module):
 
     def forward(self, imgs):
         encoded_images = self.encoder(imgs)
-        quant_conv_encoded_images = self.quant_conv(encoded_images)
+        quantized_encoded_images = self.quant_conv(encoded_images)
         codebook_mapping, codebook_indices, q_loss = self.codebook(
-            quant_conv_encoded_images
+            quantized_encoded_images
         )
-        post_quant_conv_mapping = self.post_quant_conv(codebook_mapping)
-        decoded_images = self.decoder(post_quant_conv_mapping)
+        quantized_codebook_mapping = self.post_quant_conv(codebook_mapping)
+        decoded_images = self.decoder(quantized_codebook_mapping)
 
         return decoded_images, codebook_indices, q_loss
 
     def encode(self, imgs):
         encoded_images = self.encoder(imgs)
-        quant_conv_encoded_images = self.quant_conv(encoded_images)
+        quantized_encoded_images = self.quant_conv(encoded_images)
         codebook_mapping, codebook_indices, q_loss = self.codebook(
-            quant_conv_encoded_images
+            quantized_encoded_images
         )
         return codebook_mapping, codebook_indices, q_loss
 
     def decode(self, z):
-        post_quant_conv_mapping = self.post_quant_conv(z)
-        decoded_images = self.decoder(post_quant_conv_mapping)
+        quantized_encoded_images = self.post_quant_conv(z)
+        decoded_images = self.decoder(quantized_encoded_images)
         return decoded_images
 
     def calc_lambda(self, perceptual_loss, gan_loss):
@@ -77,7 +77,7 @@ class VQGAN(nn.Module):
     def adopt_weight(disc_factor, i, threshold, val=0.0):
         if i < threshold:
             disc_factor = val
-            return disc_factor
+        return disc_factor
 
     def load_checkpoint(self, path):
         self.load_state_dict(torch.load(path))

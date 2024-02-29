@@ -2,6 +2,7 @@
 PatchGAN Discriminator (https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/models/networks.py#L538)
 """
 
+import torch
 import torch.nn as nn
 import config
 
@@ -39,4 +40,4 @@ class Discriminator(nn.Module):
         self.model = nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.model(x)
+        return torch.sigmoid(self.model(x))
