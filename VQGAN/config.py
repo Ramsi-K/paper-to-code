@@ -3,24 +3,24 @@ import torch
 # Common parameters
 latent_dim = 32
 image_size = 32
-num_codebook_vectors = 128
+num_codebook_vectors = 16
+attn_resolution = [16]
 beta = 0.25
 image_channels = 3
 dataset_path = "dataset\\oxford_17flowers"
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"  #
 batch_size = 6
 epochs = 1
 learning_rate = 2.25e-05
 beta1 = 0.5
 beta2 = 0.9
-disc_start = 10000
+disc_start = 100
 disc_factor = 1.0
 rec_loss_factor = 1.0
 perceptual_loss_factor = 1.0
 
 # Decoder paramters
 decoder_channels = [512, 256, 256, 128, 128]
-attn_resolution = [16]
 decoder_num_res_blocks = 3
 decoder_resolution = 16
 

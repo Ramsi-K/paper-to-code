@@ -2,12 +2,8 @@
 PatchGAN Discriminator (https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/models/networks.py#L538)
 """
 
-import torch
 import torch.nn as nn
 import config
-
-import torch
-import torch.nn as nn
 
 
 class Discriminator(nn.Module):
@@ -44,36 +40,3 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
         return self.model(x)
-
-
-# def test_discriminator():
-#     # Set device
-#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-#     # Define configuration parameters
-#     image_channels = config.image_channels
-
-#     # Instantiate the discriminator
-#     discriminator = Discriminator(config).to(device)
-
-#     # Create dummy input data
-#     batch_size = 4
-#     height, width = 128, 128
-#     dummy_input = torch.randn(batch_size, image_channels, height, width).to(
-#         device
-#     )
-
-#     # Perform a forward pass
-#     output = discriminator(dummy_input)
-
-#     # Check the output shape
-#     expected_output_shape = (batch_size, 1, height // 16, width // 16)
-#     assert (
-#         output.shape == expected_output_shape
-#     ), f"Output shape mismatch: expected {expected_output_shape}, got {output.shape}"
-
-#     print("Discriminator test passed!")
-
-
-# # Run the test function
-# test_discriminator()

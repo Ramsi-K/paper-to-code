@@ -76,23 +76,23 @@ class TrainVQGAN:
         os.makedirs("VQGAN\\results", exist_ok=True)
         os.makedirs("VQGAN\\checkpoints", exist_ok=True)
 
-    def train(self, args):
+    def train(self, config):
         """Train the VQGAN model."""
-        train_dataset = load_data(args)
+        train_dataset = load_data(config)
         steps_per_epoch = len(train_dataset)
-        for epoch in range(args.epochs):
+        for epoch in range(config.epochs):
             with tqdm(range(len(train_dataset))) as pbar:
                 for i, imgs in zip(pbar, train_dataset):
-                    imgs = imgs.to(device=args.device)
+                    imgs = imgs.to(device=config.device)
                     decoded_images, _, q_loss = self.vqgan(imgs)
 
                     disc_real = self.discriminator(imgs)
                     disc_fake = self.discriminator(decoded_images)
 
                     disc_factor = self.vqgan.adopt_weight(
-                        args.disc_factor,
+                        config.disc_factor,
                         epoch * steps_per_epoch + i,
-                        threshold=args.disc_start,
+                        threshold=config.disc_start,
                     )
 
                     perceptual_loss = self.perceptual_loss(
@@ -100,8 +100,8 @@ class TrainVQGAN:
                     )
                     rec_loss = torch.abs(imgs - decoded_images)
                     perceptual_rec_loss = (
-                        args.perceptual_loss_factor * perceptual_loss
-                        + args.rec_loss_factor * rec_loss
+                        config.perceptual_loss_factor * perceptual_loss
+                        + config.rec_loss_factor * rec_loss
                     )
                     perceptual_rec_loss = perceptual_rec_loss.mean()
                     g_loss = -torch.mean(disc_fake)
@@ -138,7 +138,9 @@ class TrainVQGAN:
                             )
                             vutils.save_image(
                                 real_fake_images,
-                                os.path.join("results", f"{epoch}_{i}.jpg"),
+                                os.path.join(
+                                    "VQGAN\\results", f"{epoch}_{i}.jpg"
+                                ),
                                 nrow=4,
                             )
 
@@ -153,7 +155,9 @@ class TrainVQGAN:
                     pbar.update(0)
                 torch.save(
                     self.vqgan.state_dict(),
-                    os.path.join("checkpoints", f"vqgan_epoch_{epoch}.pt"),
+                    os.path.join(
+                        "VQGAN\\checkpoints", f"vqgan_epoch_{epoch}.pt"
+                    ),
                 )
 
 
