@@ -89,16 +89,12 @@ class TrainVQGAN:
 
                     disc_real = self.discriminator(imgs)
                     disc_fake = self.discriminator(decoded_images)
-                    print(
-                        f"config.disc_factor: {config.disc_factor, type(config.disc_factor)}"
-                    )
 
                     disc_factor = self.vqgan.adopt_weight(
                         config.disc_factor,
                         epoch * steps_per_epoch + i,
                         threshold=config.disc_start,
                     )
-                    print(f"disc_factor: {disc_factor}")
 
                     perceptual_loss = self.perceptual_loss(
                         imgs, decoded_images
@@ -114,13 +110,7 @@ class TrainVQGAN:
                     lambda_ = self.vqgan.calc_lambda(
                         perceptual_rec_loss, g_loss
                     )
-                    print(
-                        f"perceptual_rec_loss: {perceptual_rec_loss, perceptual_rec_loss.shape, perceptual_rec_loss.type}"
-                    )
-                    print(f"q_loss: {q_loss, q_loss.shape, q_loss.type}")
-                    print(f"disc_factor: {type(disc_factor)}")
-                    print(f"lambda_: {lambda_, lambda_.shape, lambda_.type}")
-                    print(f"g_loss: {g_loss, g_loss.shape, g_loss.type}")
+
                     vq_loss = (
                         perceptual_rec_loss
                         + q_loss

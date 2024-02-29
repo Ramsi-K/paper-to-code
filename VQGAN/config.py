@@ -1,33 +1,48 @@
 import torch
 
 # Common parameters
-latent_dim = 32
-image_size = 32
-num_codebook_vectors = 16
-attn_resolution = [16]
-beta = 0.25
-image_channels = 3
-dataset_path = "C:\\msys64\\home\\ramsi\\dataset\\oxford_17flowers"
-device = "cuda" if torch.cuda.is_available() else "cpu"  #
-batch_size = 6
-epochs = 1
-learning_rate = 2.25e-05
-beta1 = 0.5
-beta2 = 0.9
-disc_start = 0
-disc_factor = 1.0
-rec_loss_factor = 1.0
-perceptual_loss_factor = 1.0
+latent_dim = 256  # Dimension of the latent space
+image_size = 256  # Size of the input images
+num_codebook_vectors = 128  # Number of vectors in the codebook
+attn_resolution = [16]  # Resolution for attention blocks
+beta = 0.25  # Coefficient for the commitment loss
+image_channels = 3  # Number of channels in the input images
+dataset_path = "dataset\\oxford_17flowers"  # Path to the dataset
+device = (
+    "cuda" if torch.cuda.is_available() else "cpu"
+)  # Device for training: cuda if available, else cpu
+batch_size = 2  # Batch size for training
+epochs = 50  # Number of epochs for training
+learning_rate = 2.25e-05  # Learning rate for training
+beta1 = 0.5  # Beta1 value for Adam optimizer
+beta2 = 0.9  # Beta2 value for Adam optimizer
+disc_start = 0  # Epoch to start training the discriminator
+disc_factor = 1.0  # Factor for adjusting discriminator loss
+rec_loss_factor = 1.0  # Factor for adjusting reconstruction loss
+perceptual_loss_factor = 1.0  # Factor for adjusting perceptual loss
 
-# Decoder paramters
-decoder_channels = [512, 256, 256, 128, 128]
-decoder_num_res_blocks = 3
-decoder_resolution = 16
+# Decoder parameters
+decoder_channels = [
+    512,
+    256,
+    256,
+    128,
+    128,
+]  # Number of channels in each layer of the decoder
+decoder_num_res_blocks = 3  # Number of residual blocks in the decoder
+decoder_resolution = 16  # Initial resolution for the decoder
 
 # Encoder parameters
-encoder_channels = [128, 128, 128, 256, 256, 512]
-encoder_num_res_block = 2
-encoder_resolution = 256
+encoder_channels = [
+    128,
+    128,
+    128,
+    256,
+    256,
+    512,
+]  # Number of channels in each layer of the encoder
+encoder_num_res_block = 2  # Number of residual blocks in the encoder
+encoder_resolution = 256  # Initial resolution for the encoder
 
 # Training parameters
 training_params = {
@@ -48,3 +63,7 @@ training_params = {
     "rec_loss_factor": rec_loss_factor,
     "perceptual_loss_factor": perceptual_loss_factor,
 }
+
+# Transformer parameters
+pkeep = 0.5  # Probability of keeping a neuron active during training
+sos_token = 0  # Start-of-sequence token

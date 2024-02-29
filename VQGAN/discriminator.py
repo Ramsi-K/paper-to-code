@@ -2,7 +2,6 @@
 PatchGAN Discriminator (https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/models/networks.py#L538)
 """
 
-import torch
 import torch.nn as nn
 import config
 
