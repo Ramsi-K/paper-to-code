@@ -75,9 +75,12 @@ def load_data(args):
     Returns:
         DataLoader: DataLoader object containing the loaded data.
     """
-    train_data = ImagePaths(args.dataset_path, size=256)
+    train_data = ImagePaths(args.dataset_path, size=args.image_size)
     train_loader = DataLoader(
-        train_data, batch_size=args.batch_size, shuffle=False
+        train_data,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
     )
     return train_loader
 

@@ -20,6 +20,7 @@ disc_start = 0  # Epoch to start training the discriminator
 disc_factor = 1.0  # Factor for adjusting discriminator loss
 rec_loss_factor = 1.0  # Factor for adjusting reconstruction loss
 perceptual_loss_factor = 1.0  # Factor for adjusting perceptual loss
+num_workers = 4
 
 # Decoder parameters
 decoder_channels = [
