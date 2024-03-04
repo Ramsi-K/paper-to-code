@@ -165,4 +165,4 @@ class TrainVQGAN:
 
 if __name__ == "__main__":
     # Start training with configuration from config.py
-    train_vqgan = TrainVQGAN(config)
+    train_vqgan = torch.compile(TrainVQGAN(config))

@@ -11,7 +11,7 @@ dataset_path = "dataset\\oxford_17flowers"  # Path to the dataset
 device = (
     "cuda" if torch.cuda.is_available() else "cpu"
 )  # Device for training: cuda if available, else cpu
-batch_size = 2  # Batch size for training
+batch_size = 5  # Batch size for training
 epochs = 50  # Number of epochs for training
 learning_rate = 2.25e-05  # Learning rate for training
 beta1 = 0.5  # Beta1 value for Adam optimizer
@@ -20,7 +20,7 @@ disc_start = 0  # Epoch to start training the discriminator
 disc_factor = 1.0  # Factor for adjusting discriminator loss
 rec_loss_factor = 1.0  # Factor for adjusting reconstruction loss
 perceptual_loss_factor = 1.0  # Factor for adjusting perceptual loss
-num_workers = 4
+num_workers = 8
 
 # Decoder parameters
 decoder_channels = [

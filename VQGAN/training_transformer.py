@@ -74,6 +74,7 @@ class TrainTransformer:
         )
         return optimizer
 
+    @torch.compile
     def train(self, args):
         """
         Train the model.

@@ -86,6 +86,7 @@ class VQGANTransformer(nn.Module):
         image = self.vqgan.decode(ix_to_vectors)
         return image
 
+    @torch.compile
     def forward(self, x):
         """
         Forward pass of the model.
