@@ -19,15 +19,18 @@ To implement the VAE architecture in PyTorch, we follow the architecture describ
 
 ### Repo Structure
 
-- `train.py`: Script for training the VAE model.
-- `model.py`: Contains the VAE model architecture.
+- `train.py`: Script for training the Linear VAE model.
+- `model.py`: Contains the Linear VAE model architecture.
+- `conv_model.py`: Contains the CNN VAE model architecture.
+- `train_conv.py`: Script for training the CNN VAE model architecture.
 - `config.py`: Configuration parameters for training the model.
+- `results`: Contains the results from 20 epochs for both linear and cnn model training
 
-### Results
+### Results - 20 Epochs
 
-![0]("results/reconstructed_images_0.png")
-
-![19]("results/reconstructed_images_19.png")
+Epoch 0| Linear Model | Conv Model |
+-----|---------------|-----------------|
+![0](results/reconstructed_images_0.png)|![Linear_19](results/reconstructed_images_19.png)|![Conv_19](results/conv_reconstructed_images_19_400.png)|
 
 
 ### References:
