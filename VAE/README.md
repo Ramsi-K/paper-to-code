@@ -32,7 +32,8 @@ To implement the VAE architecture in PyTorch, we follow the architecture describ
 
 ### References:
 
-- Kingma, D. P., & Welling, M. (2013). Auto-Encoding Variational Bayes. arXiv preprint arXiv:1312.6114.
+- Kingma, D. P., & Welling, M. (2013). Auto-Encoding Variational Bayes. arXiv preprint arXiv:1312.6114. - https://arxiv.org/abs/1312.6114v10
 - Blog post: https://jaan.io/what-is-variational-autoencoder-vae-tutorial/
 - Video explanation: https://www.youtube.com/watch?v=P78QYjWh5sM
+- Understanding Variational AutoEncoders - https://towardsdatascience.com/understanding-variational-autoencoders-vaes-f70510919f73
 - Pytorch Implementation : https://youtu.be/VELQT1-hILo?si=isw-AJOsciSesdLy
