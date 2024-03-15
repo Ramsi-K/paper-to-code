@@ -1,8 +1,21 @@
 import torch
-from torch import nn
+import torch.nn as nn
 
 
 class ConvBlock(nn.Module):
+    """
+    Convolutional block with optional activation function.
+
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        use_act (bool): Whether to use activation function.
+        **kwargs: Additional arguments for `nn.Conv2d`.
+
+    Returns:
+        None
+    """
+
     def __init__(self, in_channels, out_channels, use_act, **kwargs):
         super().__init__()
         self.cnn = nn.Conv2d(in_channels, out_channels, **kwargs, bias=True)
@@ -15,6 +28,17 @@ class ConvBlock(nn.Module):
 
 
 class UpsampleBlock(nn.Module):
+    """
+    Upsample block using nearest neighbor interpolation.
+
+    Args:
+        in_c (int): Number of input channels.
+        scale_factor (int): Upsampling factor.
+
+    Returns:
+        None
+    """
+
     def __init__(self, in_c, scale_factor=2):
         super().__init__()
         self.upsample = nn.Upsample(scale_factor=scale_factor, mode="nearest")
@@ -26,6 +50,18 @@ class UpsampleBlock(nn.Module):
 
 
 class DenseResidualBlock(nn.Module):
+    """
+    Dense Residual Block (DRRB) for feature extraction.
+
+    Args:
+        in_channels (int): Number of input channels.
+        channels (int): Number of intermediate channels.
+        residual_beta (float): Residual scaling factor.
+
+    Returns:
+        None
+    """
+
     def __init__(self, in_channels, channels=32, residual_beta=0.2):
         super().__init__()
         self.residual_beta = residual_beta
@@ -49,10 +85,21 @@ class DenseResidualBlock(nn.Module):
             out = block(new_inputs)
             new_inputs = torch.cat([new_inputs, out], dim=1)
 
-        return self.residual_beta * out + x  # x->skip connection
+        return self.residual_beta * out + x  # Skip connection
 
 
 class RRDB(nn.Module):
+    """
+    Residual in Residual Dense Block (RRDB) for feature extraction.
+
+    Args:
+        in_channels (int): Number of input channels.
+        residual_beta (float): Residual scaling factor.
+
+    Returns:
+        None
+    """
+
     def __init__(self, in_channels, residual_beta=0.2):
         super().__init__()
         self.residual_beta = residual_beta
@@ -65,7 +112,19 @@ class RRDB(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, in_channels=3, num_channels=64, num_blocks=23) -> None:
+    """
+    Generator network for super-resolution.
+
+    Args:
+        in_channels (int): Number of input channels.
+        num_channels (int): Number of channels in intermediate layers.
+        num_blocks (int): Number of RRDB blocks.
+
+    Returns:
+        None
+    """
+
+    def __init__(self, in_channels=3, num_channels=64, num_blocks=23):
         super().__init__()
         self.initial = nn.Conv2d(
             in_channels,
@@ -98,9 +157,20 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
+    """
+    Discriminator network for adversarial learning.
+
+    Args:
+        in_channels (int): Number of input channels.
+        features (list): Number of features in each convolutional layer.
+
+    Returns:
+        None
+    """
+
     def __init__(
         self, in_channels=3, features=[64, 64, 128, 128, 256, 512, 512]
-    ) -> None:
+    ):
         super().__init__()
         blocks = []
         for idx, feature in enumerate(features):
@@ -131,13 +201,29 @@ class Discriminator(nn.Module):
 
 
 def initialize_weights(model, scale=0.1):
+    """
+    Initialize weights of the model using Kaiming Normal initialization.
+
+    Args:
+        model (nn.Module): Model to initialize.
+        scale (float): Scaling factor for weights initialization.
+
+    Returns:
+        None
+    """
     for m in model.modules():
-        if isinstance(m, [nn.Conv2d, nn.Linear]):
+        if isinstance(m, (nn.Conv2d, nn.Linear)):
             nn.init.kaiming_normal_(m.weight.data)
             m.weight.data *= scale
 
 
 def test():
+    """
+    Test the Generator and Discriminator networks.
+
+    Returns:
+        None
+    """
     gen = Generator()
     disc = Discriminator()
     low_res = 24
