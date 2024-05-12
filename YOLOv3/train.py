@@ -1,121 +1,94 @@
-"""
-Main file for training Yolo model on Pascal VOC and COCO dataset
-"""
-
-import config
 import torch
 import torch.optim as optim
-
+from torch.utils.data import DataLoader
 from model import YOLOv3
-from tqdm import tqdm
-from utils import (
-    mean_average_precision,
-    cells_to_bboxes,
-    get_evaluation_bboxes,
-    save_checkpoint,
-    load_checkpoint,
-    check_class_accuracy,
-    get_loaders,
-    plot_couple_examples,
+from dataset import YOLODataset, download_voc_dataset
+from loss import YOLOLoss
+from tqdm import tqdm  # Import tqdm for progress bar
+from config import (
+    DEVICE,
+    BATCH_SIZE,
+    IMG_DIR,
+    LABEL_DIR,
+    NUM_EPOCHS,
+    LEARNING_RATE,
+    num_workers,
+    PASCAL_CLASSES,
+    train_transforms,
 )
-from loss import YoloLoss
-import warnings
-
-warnings.filterwarnings("ignore")
-
-torch.backends.cudnn.benchmark = True
 
 
-def train_fn(train_loader, model, optimizer, loss_fn, scaler, scaled_anchors):
-    loop = tqdm(train_loader, leave=True)
-    losses = []
-    for batch_idx, (x, y) in enumerate(loop):
-        x = x.to(config.DEVICE)
-        y0, y1, y2 = (
-            y[0].to(config.DEVICE),
-            y[1].to(config.DEVICE),
-            y[2].to(config.DEVICE),
-        )
+def custom_collate_fn(batch):
+    images = [item[0] for item in batch]
+    targets = [item[1] for item in batch]
+    images = torch.stack(images)  # Stack images for batching
+    return images, targets  # Return targets as list to avoid collate issues
 
-        with torch.cuda.amp.autocast():
-            out = model(x)
-            loss = (
-                loss_fn(out[0], y0, scaled_anchors[0])
-                + loss_fn(out[1], y1, scaled_anchors[1])
-                + loss_fn(out[2], y2, scaled_anchors[2])
-            )
 
-        losses.append(loss.item())
+def train_fn(data_loader, model, optimizer, loss_fn):
+    model.train()
+    total_loss = 0
+    loop = tqdm(data_loader, leave=True)
+    for batch_idx, (images, targets) in enumerate(loop):
+        images = images.to(DEVICE)
+        preds = model(images)
+        loss = 0
+        for target in targets:
+            for i, pred in enumerate(preds):
+                target[i] = target[i].to(DEVICE)
+                loss += loss_fn(pred, target[i])
+
         optimizer.zero_grad()
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
+        loss.backward()
+        optimizer.step()
 
-        # update progress bar
-        mean_loss = sum(losses) / len(losses)
-        loop.set_postfix(loss=mean_loss)
+        total_loss += loss.item()
+        loop.set_postfix(loss=loss.item())
+
+    # Return average loss for the epoch
+    return total_loss / len(data_loader)
 
 
 def main():
-    model = YOLOv3(num_classes=config.NUM_CLASSES).to(config.DEVICE)
-    optimizer = optim.Adam(
-        model.parameters(),
-        lr=config.LEARNING_RATE,
-        weight_decay=config.WEIGHT_DECAY,
+    download_voc_dataset(year="2012", root="data/VOC")
+
+    # Initialize dataset and DataLoader
+    train_dataset = YOLODataset(
+        img_dir=IMG_DIR,
+        label_dir=LABEL_DIR,
+        S=[13, 26, 52],
+        anchors=[
+            [(10, 13), (16, 30), (33, 23)],
+            [(30, 61), (62, 45), (59, 119)],
+            [(116, 90), (156, 198), (373, 326)],
+        ],
+        C=len(PASCAL_CLASSES),
+        transform=train_transforms,
     )
-    loss_fn = YoloLoss()
-    scaler = torch.cuda.amp.GradScaler()
-
-    train_loader, test_loader, train_eval_loader = get_loaders(
-        train_csv_path=config.DATASET + "/train.csv",
-        test_csv_path=config.DATASET + "/test.csv",
+    train_loader = DataLoader(
+        dataset=train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        collate_fn=custom_collate_fn,
+        num_workers=num_workers,
+        pin_memory=True,
     )
 
-    if config.LOAD_MODEL:
-        load_checkpoint(
-            config.CHECKPOINT_FILE, model, optimizer, config.LEARNING_RATE
-        )
+    # Initialize model, optimizer, and loss function
+    model = YOLOv3(num_classes=len(PASCAL_CLASSES)).to(DEVICE)
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    loss_fn = YOLOLoss()
 
-    scaled_anchors = (
-        torch.tensor(config.ANCHORS)
-        * torch.tensor(config.S).unsqueeze(1).unsqueeze(1).repeat(1, 3, 2)
-    ).to(config.DEVICE)
+    # Training loop
+    for epoch in range(NUM_EPOCHS):
+        print(f"Epoch [{epoch + 1}/{NUM_EPOCHS}]")
+        avg_loss = train_fn(train_loader, model, optimizer, loss_fn)
+        print(f"Average Loss: {avg_loss:.4f}")
 
-    for epoch in range(config.NUM_EPOCHS):
-        train_fn(
-            train_loader, model, optimizer, loss_fn, scaler, scaled_anchors
-        )
-
-        if config.SAVE_MODEL:
-            save_checkpoint(model, optimizer, filename=f"checkpoint.pth.tar")
-
-        print(f"Currently epoch {epoch}")
-        print("On Train Eval loader:")
-        print("On Train loader:")
-        check_class_accuracy(
-            model, train_loader, threshold=config.CONF_THRESHOLD
-        )
-
-        if epoch > 0 and epoch % 3 == 0:
-            check_class_accuracy(
-                model, test_loader, threshold=config.CONF_THRESHOLD
-            )
-            pred_boxes, true_boxes = get_evaluation_bboxes(
-                test_loader,
-                model,
-                iou_threshold=config.NMS_IOU_THRESH,
-                anchors=config.ANCHORS,
-                threshold=config.CONF_THRESHOLD,
-            )
-            mapval = mean_average_precision(
-                pred_boxes,
-                true_boxes,
-                iou_threshold=config.MAP_IOU_THRESH,
-                box_format="midpoint",
-                num_classes=config.NUM_CLASSES,
-            )
-            print(f"MAP: {mapval.item()}")
-            model.train()
+        # Save model checkpoint every few epochs
+        if (epoch + 1) % 5 == 0:
+            torch.save(model.state_dict(), f"yolov3_epoch{epoch + 1}.pth")
+            print(f"Model checkpoint saved at epoch {epoch + 1}")
 
 
 if __name__ == "__main__":
