@@ -32,10 +32,23 @@ IMG_DIR = f"{DATASET_ROOT}/VOCdevkit/VOC{DATASET_YEAR}/JPEGImages"
 LABEL_DIR = f"{DATASET_ROOT}/VOCdevkit/VOC{DATASET_YEAR}/Annotations"
 
 # Anchors for YOLO (use defaults for VOC)
+# ANCHORS = [
+#     [(10, 13), (16, 30), (33, 23)],
+#     [(30, 61), (62, 45), (59, 119)],
+#     [(116, 90), (156, 198), (373, 326)],
+# ]
 ANCHORS = [
-    [(10, 13), (16, 30), (33, 23)],
-    [(30, 61), (62, 45), (59, 119)],
-    [(116, 90), (156, 198), (373, 326)],
+    [(10 / 8, 13 / 8), (16 / 8, 30 / 8), (33 / 8, 23 / 8)],  # Scale for 8x8
+    [
+        (30 / 16, 61 / 16),
+        (62 / 16, 45 / 16),
+        (59 / 16, 119 / 16),
+    ],  # Scale for 16x16
+    [
+        (116 / 32, 90 / 32),
+        (156 / 32, 198 / 32),
+        (373 / 32, 326 / 32),
+    ],  # Scale for 32x32
 ]
 
 # Transformations for training and testing
