@@ -7,6 +7,7 @@
 *.xml
 *.csv
 *.pdf
+*.sh
 
 # Exception
 !ViT_pytorch_paper_replicating.ipynb
