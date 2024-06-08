@@ -7,6 +7,10 @@ This repository contains an implementation of the YOLOv3 (You Only Look Once, ve
 - **Multi-scale predictions**: YOLOv3 performs detection at three different scales, capturing objects of varying sizes effectively.
 - **Bounding box regression with anchor boxes**: Leverages predefined anchor boxes to improve detection accuracy and localization.
 - **Efficient model architecture**: Built on a modified Darknet-53 backbone, providing a balance of speed and accuracy.
+- **Darknet-53 Backbone**: The YOLOv3 model uses the Darknet-53 as a feature extractor. It’s a stack of convolutional and residual blocks optimized for YOLO’s object detection performance.
+   - Convolutional Layers: Darknet-53 has 53 convolutional layers (hence the name) with residual connections, which improve gradient flow during backpropagation, leading to more stable and effective training.
+   - Residual Blocks: These blocks allow the model to learn features at different layers without vanishing gradients.
+   - Efficiency: The backbone enables YOLOv3 to balance speed and accuracy. Without this, YOLOv3’s performance could be compromised.
 
 ## Purpose and Future Work
 

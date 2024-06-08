@@ -1,111 +1,72 @@
-import albumentations as A
-import cv2
+# config.py
+
+import os
 import torch
+
+# from torchvision import transforms
+import albumentations as A
 from albumentations.pytorch import ToTensorV2
-from utils import seed_everything
 
-# Device configuration
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-seed_everything()
-num_workers = 2
+# Paths
+DATA_PATH = "data/VOC/VOCdevkit/VOC2012"  # Path to VOC dataset
+ANNOTATIONS_PATH = os.path.join(DATA_PATH, "Annotations")
+IMAGES_PATH = os.path.join(DATA_PATH, "JPEGImages")
+IMAGE_SETS_PATH = os.path.join(DATA_PATH, "ImageSets/Main")
+CHECKPOINTS_DIR = "checkpoints"
+OUTPUT_DIR = "output"
 
-# Training parameters
-NUM_WORKERS = 4
-BATCH_SIZE = 2
-IMAGE_SIZE = 256
-NUM_CLASSES = 20
-LEARNING_RATE = 1e-5
-WEIGHT_DECAY = 1e-4
-NUM_EPOCHS = 2
-CONF_THRESHOLD = 0.5
-MAP_IOU_THRESH = 0.5
-NMS_IOU_THRESH = 0.5
-PIN_MEMORY = True
-LOAD_MODEL = False
-SAVE_MODEL = True
-CHECKPOINT_FILE = "yolov3.pth"
-
-# Dataset paths (adjust after downloading Pascal VOC dataset)
-DATASET_YEAR = "2012"  # or "2007"
-DATASET_ROOT = "data/VOC"
-IMG_DIR = f"{DATASET_ROOT}/VOCdevkit/VOC{DATASET_YEAR}/JPEGImages"
-LABEL_DIR = f"{DATASET_ROOT}/VOCdevkit/VOC{DATASET_YEAR}/Annotations"
-
-# Anchors for YOLO (use defaults for VOC)
-# ANCHORS = [
-#     [(10, 13), (16, 30), (33, 23)],
-#     [(30, 61), (62, 45), (59, 119)],
-#     [(116, 90), (156, 198), (373, 326)],
-# ]
+# Model Parameters
+IMAGE_SIZE = 416
+GRID_SIZE = 13  # For original YOLOv3 architecture; changes at each scale
 ANCHORS = [
-    [(10 / 8, 13 / 8), (16 / 8, 30 / 8), (33 / 8, 23 / 8)],  # Scale for 8x8
-    [
-        (30 / 16, 61 / 16),
-        (62 / 16, 45 / 16),
-        (59 / 16, 119 / 16),
-    ],  # Scale for 16x16
-    [
-        (116 / 32, 90 / 32),
-        (156 / 32, 198 / 32),
-        (373 / 32, 326 / 32),
-    ],  # Scale for 32x32
+    [(10, 13), (16, 30), (33, 23)],  # Scale for 13x13
+    [(30, 61), (62, 45), (59, 119)],  # Scale for 26x26
+    [(116, 90), (156, 198), (373, 326)],  # Scale for 52x52
 ]
+NUM_CLASSES = 20  # VOC dataset has 20 classes
+CONF_THRESHOLD = 0.5  # Confidence score threshold for filtering predictions
+NMS_IOU_THRESH = 0.45  # IoU threshold for Non-Max Suppression
 
-# Transformations for training and testing
-scale = 1.1
+# Training Parameters
+BATCH_SIZE = 16
+LEARNING_RATE = 1e-4
+WEIGHT_DECAY = 5e-4
+NUM_EPOCHS = 100
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+PIN_MEMORY = True
+NUM_WORKERS = 4  # Adjust based on your system's capabilities
+
+# Checkpoint and Output Settings
+SAVE_CHECKPOINT = True
+LOAD_CHECKPOINT = False
+CHECKPOINT_FILE = os.path.join(CHECKPOINTS_DIR, "yolov3_checkpoint.pth")
+BEST_MODEL_FILE = os.path.join(CHECKPOINTS_DIR, "yolov3_best_model.pth")
+LOG_INTERVAL = 10  # Log training progress every 10 batches
+
+# Data Augmentation Settings
+FLIP_PROB = 0.5
+SCALE_MIN = 0.8
+SCALE_MAX = 1.2
+
+
 train_transforms = A.Compose(
     [
-        A.LongestMaxSize(max_size=int(IMAGE_SIZE * scale)),
-        A.PadIfNeeded(
-            min_height=int(IMAGE_SIZE * scale),
-            min_width=int(IMAGE_SIZE * scale),
-            border_mode=cv2.BORDER_CONSTANT,
+        A.RandomResizedCrop(
+            IMAGE_SIZE, IMAGE_SIZE, scale=(SCALE_MIN, SCALE_MAX)
         ),
-        A.RandomCrop(width=IMAGE_SIZE, height=IMAGE_SIZE),
-        A.ColorJitter(
-            brightness=0.6, contrast=0.6, saturation=0.6, hue=0.6, p=0.4
-        ),
-        A.OneOf(
-            [
-                A.ShiftScaleRotate(
-                    rotate_limit=20, p=0.5, border_mode=cv2.BORDER_CONSTANT
-                ),
-                A.Affine(shear=15, p=0.5, mode=cv2.BORDER_CONSTANT),
-            ],
-            p=1.0,
-        ),
-        A.HorizontalFlip(p=0.5),
-        A.Blur(p=0.1),
-        A.CLAHE(p=0.1),
-        A.Posterize(p=0.1),
-        A.ToGray(p=0.1),
-        A.ChannelShuffle(p=0.05),
-        A.Normalize(mean=[0, 0, 0], std=[1, 1, 1], max_pixel_value=255),
+        A.HorizontalFlip(p=FLIP_PROB),
+        A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
         ToTensorV2(),
     ],
-    bbox_params=A.BboxParams(
-        format="yolo", min_visibility=0.4, label_fields=[]
-    ),
-)
-
-test_transforms = A.Compose(
-    [
-        A.LongestMaxSize(max_size=IMAGE_SIZE),
-        A.PadIfNeeded(
-            min_height=IMAGE_SIZE,
-            min_width=IMAGE_SIZE,
-            border_mode=cv2.BORDER_CONSTANT,
-        ),
-        A.Normalize(mean=[0, 0, 0], std=[1, 1, 1], max_pixel_value=255),
-        ToTensorV2(),
-    ],
-    bbox_params=A.BboxParams(
-        format="yolo", min_visibility=0.4, label_fields=[]
-    ),
+    bbox_params=A.BboxParams(format="yolo", label_fields=["class_labels"]),
 )
 
 
-PASCAL_CLASSES = [
+AUGMENT = train_transforms
+
+
+# Class Names (for VOC)
+VOC_CLASSES = [
     "aeroplane",
     "bicycle",
     "bird",
@@ -127,85 +88,6 @@ PASCAL_CLASSES = [
     "train",
     "tvmonitor",
 ]
-COCO_LABELS = [
-    "person",
-    "bicycle",
-    "car",
-    "motorcycle",
-    "airplane",
-    "bus",
-    "train",
-    "truck",
-    "boat",
-    "traffic light",
-    "fire hydrant",
-    "stop sign",
-    "parking meter",
-    "bench",
-    "bird",
-    "cat",
-    "dog",
-    "horse",
-    "sheep",
-    "cow",
-    "elephant",
-    "bear",
-    "zebra",
-    "giraffe",
-    "backpack",
-    "umbrella",
-    "handbag",
-    "tie",
-    "suitcase",
-    "frisbee",
-    "skis",
-    "snowboard",
-    "sports ball",
-    "kite",
-    "baseball bat",
-    "baseball glove",
-    "skateboard",
-    "surfboard",
-    "tennis racket",
-    "bottle",
-    "wine glass",
-    "cup",
-    "fork",
-    "knife",
-    "spoon",
-    "bowl",
-    "banana",
-    "apple",
-    "sandwich",
-    "orange",
-    "broccoli",
-    "carrot",
-    "hot dog",
-    "pizza",
-    "donut",
-    "cake",
-    "chair",
-    "couch",
-    "potted plant",
-    "bed",
-    "dining table",
-    "toilet",
-    "tv",
-    "laptop",
-    "mouse",
-    "remote",
-    "keyboard",
-    "cell phone",
-    "microwave",
-    "oven",
-    "toaster",
-    "sink",
-    "refrigerator",
-    "book",
-    "clock",
-    "vase",
-    "scissors",
-    "teddy bear",
-    "hair drier",
-    "toothbrush",
-]
+
+# Logging and Debugging
+VERBOSE = True

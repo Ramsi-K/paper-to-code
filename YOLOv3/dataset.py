@@ -1,21 +1,12 @@
 import os
-import numpy as np
 import torch
 from torch.utils.data import Dataset
 from torchvision.datasets import VOCDetection
-from torchvision.transforms import ToTensor
-from PIL import Image, ImageFile
+from PIL import Image
+import numpy as np
 import xml.etree.ElementTree as ET
-from config import (
-    IMG_DIR,
-    LABEL_DIR,
-    train_transforms,
-    test_transforms,
-    PASCAL_CLASSES,
-)
-from utils import iou_width_height as iou
-
-ImageFile.LOAD_TRUNCATED_IMAGES = True
+from config import VOC_CLASSES, ANCHORS, IMAGE_SIZE, train_transforms
+from utils.utils import intersection_over_union
 
 
 def download_voc_dataset(year="2012", root="data/VOC"):
@@ -34,74 +25,110 @@ def download_voc_dataset(year="2012", root="data/VOC"):
         print(f"Pascal VOC {year} dataset downloaded successfully.")
 
 
-class YOLODataset(Dataset):
+class VOCDataset(Dataset):
     def __init__(
         self,
         img_dir,
         label_dir,
-        anchors,
-        S=[13, 26, 52],
-        C=20,  # Limit classes to 20 as set in config
+        img_size=IMAGE_SIZE,
+        anchors=ANCHORS,
         transform=None,
-    ) -> None:
-        super().__init__()
+    ):
         self.img_dir = img_dir
         self.label_dir = label_dir
+        self.img_size = img_size
         self.transform = transform
-        self.S = S
-        self.anchors = torch.tensor(anchors[0] + anchors[1] + anchors[2])
+        self.S = [13, 26, 52]
+        self.anchors = np.array(
+            [  # Convert anchors to numpy array for easier handling
+                [0, 0, 10, 13],
+                [0, 0, 16, 30],
+                [0, 0, 33, 23],
+                [0, 0, 30, 61],
+                [0, 0, 62, 45],
+                [0, 0, 59, 119],
+                [0, 0, 116, 90],
+                [0, 0, 156, 198],
+                [0, 0, 373, 326],
+            ]
+        )
         self.num_anchors = self.anchors.shape[0]
         self.num_anchors_per_scale = self.num_anchors // 3
-        self.C = C
         self.ignore_iou_thresh = 0.5
-        self.img_files = [f for f in os.listdir(img_dir) if f.endswith(".jpg")]
+        self.images = sorted(
+            [img for img in os.listdir(img_dir) if img.endswith(".jpg")]
+        )
 
     def __len__(self):
-        return len(self.img_files)
+        return len(self.images)
 
     def __getitem__(self, index):
-        img_filename = self.img_files[index]
+        img_filename = self.images[index]
         img_path = os.path.join(self.img_dir, img_filename)
         image = Image.open(img_path).convert("RGB")
         image_width, image_height = image.size
         image = np.array(image)
 
-        # Replace the .jpg extension with .xml to find the corresponding label file
         label_filename = img_filename.replace(".jpg", ".xml")
         label_path = os.path.join(self.label_dir, label_filename)
         bboxes = self._parse_annotations(label_path, image_width, image_height)
 
         if self.transform:
-            augmentations = self.transform(image=image, bboxes=bboxes)
+            augmentations = self.transform(
+                image=image,
+                bboxes=bboxes,
+                class_labels=[box[4] for box in bboxes],
+            )
             image = augmentations["image"]
             bboxes = augmentations["bboxes"]
 
         targets = [
             torch.zeros((self.num_anchors // 3, S, S, 6)) for S in self.S
         ]
+
         for box in bboxes:
-            iou_anchors = iou(torch.tensor(box[2:4]), self.anchors)
-            anchor_indices = iou_anchors.argsort(descending=True, dim=0)
-            x, y, width, height, class_label = box
+            # print("Printing box--------------")
+            # print(box)
+            x_center, y_center, width, height, class_label = box
+
+            # Convert center format to corners for IoU calculations
+            x1 = x_center - width / 2
+            y1 = y_center - height / 2
+            x2 = x_center + width / 2
+            y2 = y_center + height / 2
+            box_corners = np.array([x1, y1, x2, y2], dtype=np.float32)
+
+            # Calculate IoU for each anchor using intersection_over_union
+            iou_anchors = np.array(
+                [
+                    intersection_over_union(box_corners, anchor, "corners")
+                    for anchor in self.anchors
+                ]
+            )
+
+            # Convert the sorted indices to determine the best-matching anchors
+            anchor_indices = iou_anchors.argsort()[::-1]
             has_anchor = [False, False, False]
+
+            # print(f"Box: {box}")
+            # print(f"Box corners: {box_corners}")
+            # print(f"IoU with anchors: {iou_anchors}")
+            # print(f"Anchor indices (sorted): {anchor_indices}")
 
             for anchor_idx in anchor_indices:
                 scale_idx = anchor_idx // self.num_anchors_per_scale
                 anchor_on_scale = anchor_idx % self.num_anchors_per_scale
                 S = self.S[scale_idx]
-                i, j = int(S * y), int(S * x)
+                i, j = int(S * y_center), int(S * x_center)
                 anchor_taken = targets[scale_idx][anchor_on_scale, i, j, 0]
 
                 if not anchor_taken and not has_anchor[scale_idx]:
                     targets[scale_idx][anchor_on_scale, i, j, 0] = 1
-                    x_cell, y_cell = S * x - j, S * y - i
+                    x_cell, y_cell = S * x_center - j, S * y_center - i
                     width_cell, height_cell = width * S, height * S
-                    box_coordinates = torch.tensor(
-                        [x_cell, y_cell, width_cell, height_cell]
+                    targets[scale_idx][anchor_on_scale, i, j, 1:5] = (
+                        torch.tensor([x_cell, y_cell, width_cell, height_cell])
                     )
-                    targets[scale_idx][
-                        anchor_on_scale, i, j, 1:5
-                    ] = box_coordinates
                     targets[scale_idx][anchor_on_scale, i, j, 5] = int(
                         class_label
                     )
@@ -111,19 +138,17 @@ class YOLODataset(Dataset):
                     and iou_anchors[anchor_idx] > self.ignore_iou_thresh
                 ):
                     targets[scale_idx][anchor_on_scale, i, j, 0] = -1
+
         return image, tuple(targets)
 
     def _parse_annotations(self, label_path, image_width, image_height):
-        """
-        Parses the .xml label file and returns bounding boxes in YOLO format.
-        """
         boxes = []
         tree = ET.parse(label_path)
         root = tree.getroot()
 
         for obj in root.findall("object"):
             label = obj.find("name").text
-            class_idx = PASCAL_CLASSES.index(label)
+            class_idx = VOC_CLASSES.index(label)
             bndbox = obj.find("bndbox")
             xmin = int(bndbox.find("xmin").text)
             ymin = int(bndbox.find("ymin").text)
@@ -138,6 +163,78 @@ class YOLODataset(Dataset):
         return boxes
 
 
+def test_dataset_initialization():
+    dataset = VOCDataset(
+        img_dir="data/VOC/VOCdevkit/VOC2012/JPEGImages",
+        label_dir="data/VOC/VOCdevkit/VOC2012/Annotations",
+        img_size=IMAGE_SIZE,
+        anchors=ANCHORS,
+        transform=train_transforms,
+    )
+    print("Dataset initialized successfully.")
+    print(f"Number of images: {len(dataset)}")
+
+
+def test_bounding_box_conversion(index=0):
+    dataset = VOCDataset(
+        img_dir="data/VOC/VOCdevkit/VOC2012/JPEGImages",
+        label_dir="data/VOC/VOCdevkit/VOC2012/Annotations",
+        img_size=IMAGE_SIZE,
+        anchors=ANCHORS,
+        transform=train_transforms,
+    )
+    image, targets = dataset[index]
+    print("\nTesting bounding box conversion...")
+    print(f"Image shape: {image.shape}")
+    print(f"Targets (for each scale):")
+    for scale, target in enumerate(targets):
+        print(f"Scale {scale + 1}: Target shape: {target.shape}")
+        print(target)
+
+
+def test_iou_calculation():
+    dataset = VOCDataset(
+        img_dir="data/VOC/VOCdevkit/VOC2012/JPEGImages",
+        label_dir="data/VOC/VOCdevkit/VOC2012/Annotations",
+        img_size=IMAGE_SIZE,
+        anchors=ANCHORS,
+        transform=train_transforms,
+    )
+
+    # Convert anchors to corner format for intersection_over_union calculation
+    anchors_corner_format = []
+    for anchor in dataset.anchors:
+        x_center, y_center = (
+            0.0,
+            0.0,
+        )  # assuming anchors are centered at origin
+        width, height = anchor[0], anchor[1]
+        x1 = x_center - width / 2
+        y1 = y_center - height / 2
+        x2 = x_center + width / 2
+        y2 = y_center + height / 2
+        anchors_corner_format.append([x1, y1, x2, y2])
+
+    # Sample box in corners format
+    sample_box = [0.3, 0.2, 0.7, 0.8]  # x1, y1, x2, y2 format
+    anchors_corner_format = torch.tensor(anchors_corner_format)
+    sample_box = torch.tensor(sample_box)
+
+    print("\nTesting IoU calculation with intersection_over_union function...")
+    print(f"Sample box (corners format): {sample_box}")
+    print(f"Anchors (corners format): {anchors_corner_format}")
+    iou_scores = torch.tensor(
+        [
+            intersection_over_union(sample_box, anchor)
+            for anchor in anchors_corner_format
+        ]
+    )
+    print(f"IoU scores with anchors: {iou_scores}")
+
+
+# Run tests
 if __name__ == "__main__":
     download_voc_dataset(year="2012", root="data/VOC")
-    print("Dataset download and setup complete.")
+    test_dataset_initialization()
+    test_bounding_box_conversion()
+    test_iou_calculation()
