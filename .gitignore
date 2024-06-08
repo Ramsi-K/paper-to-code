@@ -8,6 +8,9 @@
 *.csv
 *.pdf
 
+# Exception
+!ViT_pytorch_paper_replicating.ipynb
+
 # Ignore folders containing datasets and temporary data files
 dataset/
 data/
