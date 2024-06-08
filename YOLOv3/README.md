@@ -70,6 +70,13 @@ YOLOv3/
    Throughout, maintaining the expected shapes of predictions and targets was essential for avoiding mismatches. Regular print statements and shape checks were invaluable in tracking these dimensions, ensuring loss calculations ran smoothly across all scales and reducing shape mismatch errors. This practice evolved into a routine check, saving time in resolving tensor issues.
 
 7. **Loss Component Isolation and Verification**  
+   YOLOv3 loss function typically has four parts:
+
+   - No-object loss: Penalizes the model for predicting objects where there are none.
+   - Object loss: Encourages the model to detect objects in the correct grid cell.
+   - Box loss: Adjusts the predicted bounding box coordinates to match the actual ground truth.
+   - Class loss: Optimizes the predicted class probability for each detected object.
+
    Debugging each loss component independently allowed for isolated testing of object loss, no-object loss, box loss, and class loss. This approach revealed specific areas for improvement, particularly in the class loss, which initially failed due to label mismatches. Testing each component separately made troubleshooting more efficient.
 
 ## Setup and Installation

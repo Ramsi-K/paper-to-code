@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from model import YOLOv3
 from dataset import YOLODataset, download_voc_dataset
 from loss import YOLOLoss
-from tqdm import tqdm
+from tqdm import tqdm  # For progress bar
 from config import (
     DEVICE,
     BATCH_SIZE,
@@ -15,21 +15,25 @@ from config import (
     num_workers,
     PASCAL_CLASSES,
     train_transforms,
-    ANCHORS,
-    NUM_CLASSES,
+    # ANCHORS,
 )
 
+ANCHORS = [
+    [(10, 13), (16, 30), (33, 23)],  # Anchor boxes used in YOLOv3
+    [(30, 61), (62, 45), (59, 119)],
+    [(116, 90), (156, 198), (373, 326)],
+]
 
+
+# Custom collate function to handle batches with varying target sizes
 def custom_collate_fn(batch):
     images = [item[0] for item in batch]
     targets = [item[1] for item in batch]
     images = torch.stack(images)
-    # print(f"Images shape after stacking: {images.shape}")
-    # for i, target in enumerate(targets):
-    #     # print(f"Target {i} shape before stacking: {[t.shape for t in target]}")
     return images, targets
 
 
+# Training function
 def train_fn(data_loader, model, optimizer, loss_fn, anchors):
     model.train()
     total_loss = 0
@@ -37,73 +41,45 @@ def train_fn(data_loader, model, optimizer, loss_fn, anchors):
 
     for batch_idx, (images, targets) in enumerate(loop):
         images = images.to(DEVICE)
-
-        # Ensure targets are tensors, not lists
-        if isinstance(targets, list):
-            targets = [
-                torch.stack([t[i] for t in targets]).to(DEVICE)
-                for i in range(len(anchors))
-            ]
-
         formatted_targets = []
 
-        # Prepare targets for each scale by matching the target shape to the model’s prediction scale
-        for i, scale in enumerate([8, 16, 32]):
-            target = targets[i]
-
-            if target.shape[-3:] == (
-                scale,
-                scale,
-                6,
-            ):  # Check if already aligned with scale
-                formatted_targets.append(target)
-            else:
-                # Only resize if mismatched
-                target_spatial = target[..., :2]  # Spatial part for resizing
-                target_spatial = target_spatial.permute(0, 4, 1, 2, 3)
-                target_spatial = torch.nn.functional.interpolate(
-                    target_spatial, size=(scale, scale), mode="nearest"
-                )
-                target_spatial = target_spatial.permute(0, 2, 3, 4, 1)
-                target_resized = torch.cat(
-                    (target_spatial, target[..., 2:]), dim=-1
-                )
-                formatted_targets.append(target_resized)
+        # Format targets for different scales
+        for i in range(len(anchors)):
+            scale_targets = torch.stack(
+                [target[i].to(DEVICE) for target in targets]
+            )
+            scale_targets[..., 5] = (
+                scale_targets[..., 5].clamp(0, len(PASCAL_CLASSES) - 1).long()
+            )
+            formatted_targets.append(scale_targets)
 
         preds = model(images)
         loss = 0
-
-        # Iterate through each prediction scale
         for i, pred in enumerate(preds):
             anchor_tensor = torch.tensor(anchors[i], device=DEVICE).reshape(
                 1, len(anchors[i]), 1, 1, 2
             )
-
-            # Print prediction and target shapes for debugging
-            print(
-                f"Scale {i}: Prediction shape {pred.shape[2:4]}, Target shape {formatted_targets[i].shape[2:4]}"
+            pred_objectness = pred[..., 0:1]
+            pred_box = pred[..., 1:5]
+            pred_class_scores = pred[..., 5:]
+            max_class_index = pred_class_scores.argmax(
+                dim=-1, keepdim=True
+            ).float()
+            combined_pred = torch.cat(
+                (pred_objectness, pred_box, max_class_index), dim=-1
             )
-
-            # Ensure dimensions match
-            if pred.shape[2:4] != formatted_targets[i].shape[2:4]:
-                print(
-                    f"Skipping scale {i}: Prediction shape {pred.shape[2:4]} does not match target shape {formatted_targets[i].shape[2:4]}"
-                )
-                continue
-
-            # Calculate loss
-            loss += loss_fn(pred, formatted_targets[i], anchor_tensor)
+            loss += loss_fn(combined_pred, formatted_targets[i], anchor_tensor)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
         total_loss += loss.item()
         loop.set_postfix(loss=loss.item())
 
     return total_loss / len(data_loader)
 
 
+# Main training function
 def main():
     download_voc_dataset(year="2012", root="data/VOC")
 
@@ -112,7 +88,7 @@ def main():
         label_dir=LABEL_DIR,
         S=[8, 16, 32],
         anchors=ANCHORS,
-        C=NUM_CLASSES,
+        C=len(PASCAL_CLASSES),
         transform=train_transforms,
     )
 
@@ -129,6 +105,7 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     loss_fn = YOLOLoss()
 
+    # Learning rate scheduler
     scheduler = torch.optim.lr_scheduler.StepLR(
         optimizer, step_size=10, gamma=0.1
     )
@@ -137,9 +114,9 @@ def main():
         print(f"Epoch [{epoch + 1}/{NUM_EPOCHS}]")
         avg_loss = train_fn(train_loader, model, optimizer, loss_fn, ANCHORS)
         print(f"Average Loss: {avg_loss:.4f}")
-
         scheduler.step()
 
+        # Save checkpoint every 5 epochs
         if (epoch + 1) % 5 == 0:
             checkpoint = {
                 "model_state_dict": model.state_dict(),
