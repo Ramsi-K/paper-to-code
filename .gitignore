@@ -24,4 +24,4 @@ YOLOv3/results/
 *.ckpt
 *.h5
 *.onnx
-*.txt
+
