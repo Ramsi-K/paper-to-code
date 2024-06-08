@@ -1,5 +1,27 @@
+# Ignore Jupyter Notebook checkpoints and output files
 *.ipynb
-dataset/*
 *.pyc
 *.0
 *.1
+*.tar
+*.xml
+*.csv
+*.pdf
+
+# Ignore folders containing datasets and temporary data files
+dataset/
+data/
+__pycache__/
+
+# Ignore all dataset files inside the YOLOv3 folder specifically
+YOLOv3/data/
+YOLOv3/dataset/
+YOLOv3/results/
+
+# Ignore any other general results, checkpoints, and log files
+*.log
+*.pth
+*.ckpt
+*.h5
+*.onnx
+*.txt
