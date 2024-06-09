@@ -39,20 +39,20 @@ class VOCDataset(Dataset):
         self.img_size = img_size
         self.transform = transform
         self.S = [13, 26, 52]
-        self.anchors = torch.tensor(anchors, dtype=torch.float32)
-        # np.array(
-        #     [  # Convert anchors to numpy array for easier handling
-        #         [0, 0, 10, 13],
-        #         [0, 0, 16, 30],
-        #         [0, 0, 33, 23],
-        #         [0, 0, 30, 61],
-        #         [0, 0, 62, 45],
-        #         [0, 0, 59, 119],
-        #         [0, 0, 116, 90],
-        #         [0, 0, 156, 198],
-        #         [0, 0, 373, 326],
-        #     ]
-        # )
+        # self.anchors = torch.tensor(anchors, dtype=torch.float32)
+        self.anchors = np.array(
+            [  # Convert anchors to numpy array for easier handling
+                [0, 0, 10, 13],
+                [0, 0, 16, 30],
+                [0, 0, 33, 23],
+                [0, 0, 30, 61],
+                [0, 0, 62, 45],
+                [0, 0, 59, 119],
+                [0, 0, 116, 90],
+                [0, 0, 156, 198],
+                [0, 0, 373, 326],
+            ]
+        )
         self.num_anchors = self.anchors.shape[0]
         self.num_anchors_per_scale = self.num_anchors // 3
         self.ignore_iou_thresh = 0.5
