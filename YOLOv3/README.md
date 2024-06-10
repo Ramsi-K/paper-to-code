@@ -2,6 +2,20 @@
 
 This repository contains an implementation of the YOLOv3 (You Only Look Once, version 3) architecture in PyTorch, using the Pascal VOC dataset for training and inference. YOLOv3 is known for its real-time object detection capability and high accuracy, making it suitable for applications requiring fast processing.
 
+### Contents
+- [Key Features](#key-features)
+- [Purpose and Future Work](#purpose-and-future-work)
+- [Methodology](#methodology)
+- [Theory](#theory-understanding-yolov3)
+   - [Architecture](#architecture)
+   - [Metrics](#metrics)
+- [Project Structure](#project-structure)
+- [Key Learnings and Challenges](#key-learnings-and-challenges)
+- [Setup & Installation](#setup-and-installation)
+- [Usage](#usage)
+- [References](#references)
+- [YOLOLoss Calculation](yolo_loss.md)
+
 ## Key Features
 
 - **Multi-scale predictions**: YOLOv3 performs detection at three different scales, capturing objects of varying sizes effectively.

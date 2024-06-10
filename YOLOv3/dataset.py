@@ -87,9 +87,63 @@ class VOCDataset(Dataset):
             torch.zeros((self.num_anchors // 3, S, S, 6)) for S in self.S
         ]
 
+        # for box in bboxes:
+        #     # print("Printing box--------------")
+        #     # print(box)
+        #     x_center, y_center, width, height, class_label = box
+
+        #     # Convert center format to corners for IoU calculations
+        #     x1 = x_center - width / 2
+        #     y1 = y_center - height / 2
+        #     x2 = x_center + width / 2
+        #     y2 = y_center + height / 2
+        #     box_corners = np.array([x1, y1, x2, y2], dtype=np.float32)
+
+        #     # Calculate IoU for each anchor using intersection_over_union
+        #     iou_anchors = np.array(
+        #         [
+        #             intersection_over_union(box_corners, anchor, "corners")
+        #             for anchor in self.anchors
+        #         ]
+        #     )
+
+        #     # Convert the sorted indices to determine the best-matching anchors
+        #     anchor_indices = iou_anchors.argsort()[::-1]
+        #     has_anchor = [False, False, False]
+
+        #     # print(f"Box: {box}")
+        #     # print(f"Box corners: {box_corners}")
+        #     # print(f"IoU with anchors: {iou_anchors}")
+        #     # print(f"Anchor indices (sorted): {anchor_indices}")
+
+        #     for anchor_idx in anchor_indices:
+        #         scale_idx = anchor_idx // self.num_anchors_per_scale
+        #         anchor_on_scale = anchor_idx % self.num_anchors_per_scale
+        #         S = self.S[scale_idx]
+        #         i, j = int(S * y_center), int(S * x_center)
+        #         anchor_taken = targets[scale_idx][anchor_on_scale, i, j, 0]
+
+        #         if not anchor_taken and not has_anchor[scale_idx]:
+        #             targets[scale_idx][anchor_on_scale, i, j, 0] = 1
+        #             x_cell, y_cell = S * x_center - j, S * y_center - i
+        #             width_cell, height_cell = width * S, height * S
+        #             targets[scale_idx][anchor_on_scale, i, j, 1:5] = (
+        #                 torch.tensor([x_cell, y_cell, width_cell, height_cell])
+        #             )
+        #             targets[scale_idx][anchor_on_scale, i, j, 5] = int(
+        #                 class_label
+        #             )
+        #             has_anchor[scale_idx] = True
+        #         elif (
+        #             not anchor_taken
+        #             and iou_anchors[anchor_idx] > self.ignore_iou_thresh
+        #         ):
+        #             targets[scale_idx][anchor_on_scale, i, j, 0] = -1
+
+        # return image, tuple(targets)
+
         for box in bboxes:
-            # print("Printing box--------------")
-            # print(box)
+            print(f"Box (normalized center x, y, w, h): {box}")
             x_center, y_center, width, height, class_label = box
 
             # Convert center format to corners for IoU calculations
@@ -106,15 +160,10 @@ class VOCDataset(Dataset):
                     for anchor in self.anchors
                 ]
             )
+            print(f"IoU with each anchor: {iou_anchors}")
 
-            # Convert the sorted indices to determine the best-matching anchors
             anchor_indices = iou_anchors.argsort()[::-1]
             has_anchor = [False, False, False]
-
-            # print(f"Box: {box}")
-            # print(f"Box corners: {box_corners}")
-            # print(f"IoU with anchors: {iou_anchors}")
-            # print(f"Anchor indices (sorted): {anchor_indices}")
 
             for anchor_idx in anchor_indices:
                 scale_idx = anchor_idx // self.num_anchors_per_scale
@@ -124,9 +173,20 @@ class VOCDataset(Dataset):
                 anchor_taken = targets[scale_idx][anchor_on_scale, i, j, 0]
 
                 if not anchor_taken and not has_anchor[scale_idx]:
-                    targets[scale_idx][anchor_on_scale, i, j, 0] = 1
-                    x_cell, y_cell = S * x_center - j, S * y_center - i
-                    width_cell, height_cell = width * S, height * S
+                    print(
+                        f"Assigning box {box} to scale {scale_idx}, grid cell ({i},{j})"
+                    )
+                    targets[scale_idx][
+                        anchor_on_scale, i, j, 0
+                    ] = 1  # Objectness score
+                    x_cell, y_cell = (
+                        S * x_center - j,
+                        S * y_center - i,
+                    )  # Relative position in cell
+                    width_cell, height_cell = (
+                        width * S,
+                        height * S,
+                    )  # Width and height in grid size
                     targets[scale_idx][anchor_on_scale, i, j, 1:5] = (
                         torch.tensor([x_cell, y_cell, width_cell, height_cell])
                     )
@@ -138,9 +198,9 @@ class VOCDataset(Dataset):
                     not anchor_taken
                     and iou_anchors[anchor_idx] > self.ignore_iou_thresh
                 ):
-                    targets[scale_idx][anchor_on_scale, i, j, 0] = -1
-
-        return image, tuple(targets)
+                    targets[scale_idx][
+                        anchor_on_scale, i, j, 0
+                    ] = -1  # Ignore prediction
 
     def _parse_annotations(self, label_path, image_width, image_height):
         boxes = []
@@ -185,12 +245,39 @@ def test_bounding_box_conversion(index=0):
         transform=train_transforms,
     )
     image, targets = dataset[index]
-    print("\nTesting bounding box conversion...")
+    print("\nTesting bounding box conversion and target validation...")
     print(f"Image shape: {image.shape}")
     print(f"Targets (for each scale):")
     for scale, target in enumerate(targets):
         print(f"Scale {scale + 1}: Target shape: {target.shape}")
-        print(target)
+        # print(
+        #     "Target data sample:", target[..., :5]
+        # )  # Print sample of xywhc data
+
+    # Now validate that the object mask is populated
+    test_obj_mask_population(targets)
+
+
+def test_obj_mask_population(targets):
+    """
+    Additional test to verify if the obj_mask contains valid entries.
+    """
+    print("\nTesting obj_mask and noobj_mask populations...")
+    for scale, target in enumerate(targets):
+        obj_mask = (
+            target[..., 4] == 1
+        )  # Assuming obj_mask is created this way in YOLO
+        noobj_mask = target[..., 4] == 0
+        print(f"Scale {scale + 1}: obj_mask sum: {obj_mask.sum()}")
+        print(f"Scale {scale + 1}: noobj_mask sum: {noobj_mask.sum()}")
+
+        # Verify object mask and non-object mask values
+        if obj_mask.sum() > 0:
+            print(f"Objects detected for scale {scale + 1} as expected.")
+        else:
+            print(
+                f"Warning: No objects detected for scale {scale + 1}. Check target assignment."
+            )
 
 
 def test_iou_calculation():
