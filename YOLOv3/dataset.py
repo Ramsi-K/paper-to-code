@@ -5,7 +5,7 @@ from torchvision.datasets import VOCDetection
 from PIL import Image
 import numpy as np
 import xml.etree.ElementTree as ET
-from config import VOC_CLASSES, ANCHORS, IMAGE_SIZE, train_transforms
+from config import VOC_CLASSES, ANCHORS, IMAGE_SIZE, TRAIN_AUGMENT, VAL_AUGMENT
 from utils.utils import intersection_over_union
 
 
@@ -20,7 +20,7 @@ def download_voc_dataset(year="2012", root="data/VOC"):
             year=year,
             image_set="train",
             download=True,
-            transform=train_transforms,
+            transform=TRAIN_AUGMENT,
         )
         print(f"Pascal VOC {year} dataset downloaded successfully.")
 
@@ -55,7 +55,7 @@ class VOCDataset(Dataset):
         )
         self.num_anchors = self.anchors.shape[0]
         self.num_anchors_per_scale = self.num_anchors // 3
-        self.ignore_iou_thresh = 0.5
+        self.ignore_iou_thresh = 0.2
         self.images = sorted(
             [img for img in os.listdir(img_dir) if img.endswith(".jpg")]
         )
@@ -68,6 +68,10 @@ class VOCDataset(Dataset):
         img_path = os.path.join(self.img_dir, img_filename)
         image = Image.open(img_path).convert("RGB")
         image_width, image_height = image.size
+        print("--------------------------")
+        print(f"image_width: {image_width}")
+        print(f"image_height: {image_height}")
+        print("-----------------------------")
         image = np.array(image)
 
         label_filename = img_filename.replace(".jpg", ".xml")
@@ -82,6 +86,12 @@ class VOCDataset(Dataset):
             )
             image = augmentations["image"]
             bboxes = augmentations["bboxes"]
+
+        print("--------------------------")
+        print(f"Image shape after aug: {image.shape}")
+        print(f"image_width after aug: {image.shape[2]}")
+        print(f"image_height after aug: {image.shape[1]}")
+        print("-----------------------------")
 
         targets = [
             torch.zeros((self.num_anchors // 3, S, S, 6)) for S in self.S
@@ -139,8 +149,6 @@ class VOCDataset(Dataset):
         #             and iou_anchors[anchor_idx] > self.ignore_iou_thresh
         #         ):
         #             targets[scale_idx][anchor_on_scale, i, j, 0] = -1
-
-        # return image, tuple(targets)
 
         for box in bboxes:
             print(f"Box (normalized center x, y, w, h): {box}")
@@ -201,6 +209,7 @@ class VOCDataset(Dataset):
                     targets[scale_idx][
                         anchor_on_scale, i, j, 0
                     ] = -1  # Ignore prediction
+        return image, tuple(targets)
 
     def _parse_annotations(self, label_path, image_width, image_height):
         boxes = []
@@ -225,15 +234,32 @@ class VOCDataset(Dataset):
 
 
 def test_dataset_initialization():
-    dataset = VOCDataset(
+    # dataset = VOCDataset(
+    #     img_dir="data/VOC/VOCdevkit/VOC2012/JPEGImages",
+    #     label_dir="data/VOC/VOCdevkit/VOC2012/Annotations",
+    #     img_size=IMAGE_SIZE,
+    #     anchors=ANCHORS,
+    #     transform=TRAIN_AUGMENT,
+    # )
+    train_dataset = VOCDataset(
         img_dir="data/VOC/VOCdevkit/VOC2012/JPEGImages",
         label_dir="data/VOC/VOCdevkit/VOC2012/Annotations",
         img_size=IMAGE_SIZE,
         anchors=ANCHORS,
-        transform=train_transforms,
+        transform=TRAIN_AUGMENT,
     )
+
+    val_dataset = VOCDataset(
+        img_dir="data/VOC/VOCdevkit/VOC2012/JPEGImages",
+        label_dir="data/VOC/VOCdevkit/VOC2012/Annotations",
+        img_size=IMAGE_SIZE,
+        anchors=ANCHORS,
+        transform=VAL_AUGMENT,
+    )
+
     print("Dataset initialized successfully.")
-    print(f"Number of images: {len(dataset)}")
+    print(f"Number of train images: {len(train_dataset)}")
+    print(f"Number of val images: {len(val_dataset)}")
 
 
 def test_bounding_box_conversion(index=0):
@@ -242,8 +268,14 @@ def test_bounding_box_conversion(index=0):
         label_dir="data/VOC/VOCdevkit/VOC2012/Annotations",
         img_size=IMAGE_SIZE,
         anchors=ANCHORS,
-        transform=train_transforms,
+        transform=TRAIN_AUGMENT,
     )
+    # print("Dataset 0 : ")
+    # print(dataset[0])
+    # print("-----------------------")
+    # print("DATASET::")
+    # print(dataset)
+
     image, targets = dataset[index]
     print("\nTesting bounding box conversion and target validation...")
     print(f"Image shape: {image.shape}")
@@ -265,9 +297,11 @@ def test_obj_mask_population(targets):
     print("\nTesting obj_mask and noobj_mask populations...")
     for scale, target in enumerate(targets):
         obj_mask = (
-            target[..., 4] == 1
+            target[..., 4] >= 0
         )  # Assuming obj_mask is created this way in YOLO
         noobj_mask = target[..., 4] == 0
+        print(f"Scale {scale + 1}: target sum: {target[..., 4].sum()}")
+        print(f"Scale {scale + 1}: target unique: {target[..., 4].unique()}")
         print(f"Scale {scale + 1}: obj_mask sum: {obj_mask.sum()}")
         print(f"Scale {scale + 1}: noobj_mask sum: {noobj_mask.sum()}")
 
@@ -286,7 +320,7 @@ def test_iou_calculation():
         label_dir="data/VOC/VOCdevkit/VOC2012/Annotations",
         img_size=IMAGE_SIZE,
         anchors=ANCHORS,
-        transform=train_transforms,
+        transform=TRAIN_AUGMENT,
     )
 
     # Convert anchors to corner format for intersection_over_union calculation

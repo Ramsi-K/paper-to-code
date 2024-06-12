@@ -61,8 +61,16 @@ train_transforms = A.Compose(
     bbox_params=A.BboxParams(format="yolo", label_fields=["class_labels"]),
 )
 
+val_transforms = A.Compose(
+    [
+        A.Resize(IMAGE_SIZE, IMAGE_SIZE),  # Just resizing for validation/test
+        ToTensorV2(),
+    ],
+    bbox_params=A.BboxParams(format="yolo", label_fields=["class_labels"]),
+)
 
-AUGMENT = train_transforms
+TRAIN_AUGMENT = train_transforms
+VAL_AUGMENT = val_transforms
 
 
 # Class Names (for VOC)
