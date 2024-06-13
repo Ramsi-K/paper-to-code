@@ -12,7 +12,8 @@ from utils.utils import intersection_over_union
 def download_voc_dataset(year="2012", root="data/VOC"):
     if os.path.exists(os.path.join(root, "VOCdevkit", f"VOC{year}")):
         print(
-            f"Pascal VOC {year} dataset already exists in {root}. Skipping download."
+            f"Pascal VOC {year} dataset already exists in {root}.\
+            Skipping download."
         )
     else:
         VOCDetection(
@@ -68,10 +69,6 @@ class VOCDataset(Dataset):
         img_path = os.path.join(self.img_dir, img_filename)
         image = Image.open(img_path).convert("RGB")
         image_width, image_height = image.size
-        print("--------------------------")
-        print(f"image_width: {image_width}")
-        print(f"image_height: {image_height}")
-        print("-----------------------------")
         image = np.array(image)
 
         label_filename = img_filename.replace(".jpg", ".xml")
@@ -87,71 +84,12 @@ class VOCDataset(Dataset):
             image = augmentations["image"]
             bboxes = augmentations["bboxes"]
 
-        print("--------------------------")
-        print(f"Image shape after aug: {image.shape}")
-        print(f"image_width after aug: {image.shape[2]}")
-        print(f"image_height after aug: {image.shape[1]}")
-        print("-----------------------------")
-
         targets = [
             torch.zeros((self.num_anchors // 3, S, S, 6)) for S in self.S
         ]
 
-        # for box in bboxes:
-        #     # print("Printing box--------------")
-        #     # print(box)
-        #     x_center, y_center, width, height, class_label = box
-
-        #     # Convert center format to corners for IoU calculations
-        #     x1 = x_center - width / 2
-        #     y1 = y_center - height / 2
-        #     x2 = x_center + width / 2
-        #     y2 = y_center + height / 2
-        #     box_corners = np.array([x1, y1, x2, y2], dtype=np.float32)
-
-        #     # Calculate IoU for each anchor using intersection_over_union
-        #     iou_anchors = np.array(
-        #         [
-        #             intersection_over_union(box_corners, anchor, "corners")
-        #             for anchor in self.anchors
-        #         ]
-        #     )
-
-        #     # Convert the sorted indices to determine the best-matching anchors
-        #     anchor_indices = iou_anchors.argsort()[::-1]
-        #     has_anchor = [False, False, False]
-
-        #     # print(f"Box: {box}")
-        #     # print(f"Box corners: {box_corners}")
-        #     # print(f"IoU with anchors: {iou_anchors}")
-        #     # print(f"Anchor indices (sorted): {anchor_indices}")
-
-        #     for anchor_idx in anchor_indices:
-        #         scale_idx = anchor_idx // self.num_anchors_per_scale
-        #         anchor_on_scale = anchor_idx % self.num_anchors_per_scale
-        #         S = self.S[scale_idx]
-        #         i, j = int(S * y_center), int(S * x_center)
-        #         anchor_taken = targets[scale_idx][anchor_on_scale, i, j, 0]
-
-        #         if not anchor_taken and not has_anchor[scale_idx]:
-        #             targets[scale_idx][anchor_on_scale, i, j, 0] = 1
-        #             x_cell, y_cell = S * x_center - j, S * y_center - i
-        #             width_cell, height_cell = width * S, height * S
-        #             targets[scale_idx][anchor_on_scale, i, j, 1:5] = (
-        #                 torch.tensor([x_cell, y_cell, width_cell, height_cell])
-        #             )
-        #             targets[scale_idx][anchor_on_scale, i, j, 5] = int(
-        #                 class_label
-        #             )
-        #             has_anchor[scale_idx] = True
-        #         elif (
-        #             not anchor_taken
-        #             and iou_anchors[anchor_idx] > self.ignore_iou_thresh
-        #         ):
-        #             targets[scale_idx][anchor_on_scale, i, j, 0] = -1
-
         for box in bboxes:
-            print(f"Box (normalized center x, y, w, h): {box}")
+            # print(f"Box (normalized center x, y, w, h): {box}")
             x_center, y_center, width, height, class_label = box
 
             # Convert center format to corners for IoU calculations
@@ -168,7 +106,7 @@ class VOCDataset(Dataset):
                     for anchor in self.anchors
                 ]
             )
-            print(f"IoU with each anchor: {iou_anchors}")
+            # print(f"IoU with each anchor: {iou_anchors}")
 
             anchor_indices = iou_anchors.argsort()[::-1]
             has_anchor = [False, False, False]
@@ -181,9 +119,9 @@ class VOCDataset(Dataset):
                 anchor_taken = targets[scale_idx][anchor_on_scale, i, j, 0]
 
                 if not anchor_taken and not has_anchor[scale_idx]:
-                    print(
-                        f"Assigning box {box} to scale {scale_idx}, grid cell ({i},{j})"
-                    )
+                    # print(
+                    #     f"Assigning box {box} to scale {scale_idx}, grid cell ({i},{j})"
+                    # )
                     targets[scale_idx][
                         anchor_on_scale, i, j, 0
                     ] = 1  # Objectness score
@@ -234,14 +172,7 @@ class VOCDataset(Dataset):
 
 
 def test_dataset_initialization():
-    # dataset = VOCDataset(
-    #     img_dir="data/VOC/VOCdevkit/VOC2012/JPEGImages",
-    #     label_dir="data/VOC/VOCdevkit/VOC2012/Annotations",
-    #     img_size=IMAGE_SIZE,
-    #     anchors=ANCHORS,
-    #     transform=TRAIN_AUGMENT,
-    # )
-    train_dataset = VOCDataset(
+    dataset = VOCDataset(
         img_dir="data/VOC/VOCdevkit/VOC2012/JPEGImages",
         label_dir="data/VOC/VOCdevkit/VOC2012/Annotations",
         img_size=IMAGE_SIZE,
@@ -249,17 +180,8 @@ def test_dataset_initialization():
         transform=TRAIN_AUGMENT,
     )
 
-    val_dataset = VOCDataset(
-        img_dir="data/VOC/VOCdevkit/VOC2012/JPEGImages",
-        label_dir="data/VOC/VOCdevkit/VOC2012/Annotations",
-        img_size=IMAGE_SIZE,
-        anchors=ANCHORS,
-        transform=VAL_AUGMENT,
-    )
-
     print("Dataset initialized successfully.")
-    print(f"Number of train images: {len(train_dataset)}")
-    print(f"Number of val images: {len(val_dataset)}")
+    print(f"Number of images: {len(dataset)}")
 
 
 def test_bounding_box_conversion(index=0):
@@ -270,11 +192,6 @@ def test_bounding_box_conversion(index=0):
         anchors=ANCHORS,
         transform=TRAIN_AUGMENT,
     )
-    # print("Dataset 0 : ")
-    # print(dataset[0])
-    # print("-----------------------")
-    # print("DATASET::")
-    # print(dataset)
 
     image, targets = dataset[index]
     print("\nTesting bounding box conversion and target validation...")

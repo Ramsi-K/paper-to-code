@@ -2,6 +2,7 @@
 
 import os
 import torch
+import numpy as np
 
 # from torchvision import transforms
 import albumentations as A
@@ -18,11 +19,24 @@ OUTPUT_DIR = "output"
 # Model Parameters
 IMAGE_SIZE = 416
 GRID_SIZE = 13  # For original YOLOv3 architecture; changes at each scale
-ANCHORS = [
-    [(10, 13), (16, 30), (33, 23)],  # Scale for 13x13
-    [(30, 61), (62, 45), (59, 119)],  # Scale for 26x26
-    [(116, 90), (156, 198), (373, 326)],  # Scale for 52x52
-]
+# ANCHORS = [
+#     [(10, 13), (16, 30), (33, 23)],  # Scale for 13x13
+#     [(30, 61), (62, 45), (59, 119)],  # Scale for 26x26
+#     [(116, 90), (156, 198), (373, 326)],  # Scale for 52x52
+# ]
+ANCHORS = np.array(
+    [
+        [0, 0, 10, 13],
+        [0, 0, 16, 30],
+        [0, 0, 33, 23],
+        [0, 0, 30, 61],
+        [0, 0, 62, 45],
+        [0, 0, 59, 119],
+        [0, 0, 116, 90],
+        [0, 0, 156, 198],
+        [0, 0, 373, 326],
+    ]
+)
 NUM_CLASSES = 20  # VOC dataset has 20 classes
 CONF_THRESHOLD = 0.5  # Confidence score threshold for filtering predictions
 NMS_IOU_THRESH = 0.45  # IoU threshold for Non-Max Suppression

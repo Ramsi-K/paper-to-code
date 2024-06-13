@@ -4,7 +4,7 @@ from dataset import VOCDataset
 import torch
 import torch.nn as nn
 import numpy as np
-from config import IMAGE_SIZE, ANCHORS, VOC_CLASSES, AUGMENT
+from config import IMAGE_SIZE, ANCHORS, VOC_CLASSES
 
 
 class YOLOLoss(nn.Module):
@@ -22,6 +22,9 @@ class YOLOLoss(nn.Module):
         self.lambda_noobj = 0.5
 
     def forward(self, predictions, targets):
+        print(f"Predictions shape before reshape: {predictions.shape}")
+        print(f"Targets shape: {targets.shape}")
+
         # Reshape and permute for easier handling of predictions
         batch_size, grid_size = predictions.size(0), predictions.size(2)
         num_anchors, bbox_attrs = 3, 5 + self.num_classes
@@ -29,6 +32,8 @@ class YOLOLoss(nn.Module):
             batch_size, num_anchors, bbox_attrs, grid_size, grid_size
         )
         predictions = predictions.permute(0, 1, 3, 4, 2).contiguous()
+
+        print(f"Predictions shape after permute: {predictions.shape}")
 
         # Get predicted values
         x = torch.sigmoid(predictions[..., 0])
@@ -38,6 +43,11 @@ class YOLOLoss(nn.Module):
         conf = torch.sigmoid(predictions[..., 4])
         pred_cls = torch.sigmoid(predictions[..., 5:])
 
+        print(f"x, y shape: {x.shape}, {y.shape}")
+        print(f"w, h shape: {w.shape}, {h.shape}")
+        print(f"conf shape: {conf.shape}")
+        print(f"pred_cls shape: {pred_cls.shape}")
+
         # Scale anchors
         stride = self.img_size / grid_size
         scaled_anchors = self.anchors / stride
@@ -46,19 +56,37 @@ class YOLOLoss(nn.Module):
         anchor_w = scaled_anchors[:, :, 0:1].view(1, 3, 3, 1, 1)
         anchor_h = scaled_anchors[:, :, 1:2].view(1, 3, 3, 1, 1)
 
+        print(
+            f"Anchor_w shape: {anchor_w.shape},\
+            Anchor_h shape: {anchor_h.shape}"
+        )
+
         # Adjust width and height scaling to avoid NaN
         w = torch.exp(w) * anchor_w
         h = torch.exp(h) * anchor_h
 
+        print(f"w after scaling shape: {w.shape}")
+        print(f"h after scaling shape: {h.shape}")
+
         # Masks
-        obj_mask = targets[..., 4] == 1
+        obj_mask = targets[..., 4] > 0
         noobj_mask = targets[..., 4] == 0
+
+        print(
+            f"obj_mask shape: {obj_mask.shape}, noobj_mask shape: {noobj_mask.shape}"
+        )
 
         # Target values
         tx, ty = targets[..., 0], targets[..., 1]
         tw, th = targets[..., 2], targets[..., 3]
         tconf, tcls = targets[..., 4], targets[..., 5:]
 
+        print(f"tx, ty shape: {tx.shape}, {ty.shape}")
+        print(f"tw, th shape: {tw.shape}, {th.shape}")
+        print(f"tconf shape: {tconf.shape}")
+        print(f"tcls shape: {tcls.shape}")
+
+        # Coordinate losses
         loss_x = self.lambda_coord * self.mse_loss(x[obj_mask], tx[obj_mask])
         loss_y = self.lambda_coord * self.mse_loss(y[obj_mask], ty[obj_mask])
 
@@ -75,18 +103,28 @@ class YOLOLoss(nn.Module):
             ]  # Shape should match `tw[obj_mask]`
             h_anchor = h[:, :, anchor_idx, :, :][obj_mask]
 
+            print(f"w_anchor shape: {w_anchor.shape}")
+            print(f"h_anchor shape: {h_anchor.shape}")
+            print(f"tw[obj_mask] shape: {tw[obj_mask].shape}")
+            print(f"th[obj_mask] shape: {th[obj_mask].shape}")
+
             # Compute the loss for this specific anchor
             loss_w += self.mse_loss(w_anchor, tw[obj_mask])
             loss_h += self.mse_loss(h_anchor, th[obj_mask])
 
+        # Object and no-object confidence losses
         loss_conf_obj = self.bce_loss(conf[obj_mask], tconf[obj_mask])
         loss_conf_noobj = self.lambda_noobj * self.bce_loss(
             conf[noobj_mask], tconf[noobj_mask]
+        )
+        print(
+            f"loss_conf_obj: {loss_conf_obj}, loss_conf_noobj: {loss_conf_noobj}"
         )
 
         # Classification loss
         tcls = tcls.expand_as(pred_cls)
         loss_cls = self.bce_loss(pred_cls[obj_mask], tcls[obj_mask])
+        print(f"loss_cls: {loss_cls}")
 
         # Total loss
         total_loss = (
@@ -100,16 +138,18 @@ class YOLOLoss(nn.Module):
         )
         print(f"Total loss: {total_loss.item()}")
 
-        return (
-            total_loss,
-            loss_x,
-            loss_y,
-            loss_w,
-            loss_h,
-            loss_conf_obj,
-            loss_conf_noobj,
-            loss_cls,
-        )
+        # return (
+        #     total_loss,
+        #     loss_x,
+        #     loss_y,
+        #     loss_w,
+        #     loss_h,
+        #     loss_conf_obj,
+        #     loss_conf_noobj,
+        #     loss_cls,
+        # )
+
+        return total_loss
 
 
 # Test function to validate YOLOLoss
